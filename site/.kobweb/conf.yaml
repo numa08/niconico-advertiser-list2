@@ -1,0 +1,14 @@
+site:
+  title: "Niconico Advertiser List2"
+
+server:
+  files:
+    dev:
+      contentRoot: "build/processedResources/js/main/public"
+      script: "build/kotlin-webpack/js/developmentExecutable/niconico_advertiser_list2.js"
+      api: "build/libs/niconico_advertiser_list2.jar"
+    prod:
+      script: "build/kotlin-webpack/js/productionExecutable/niconico_advertiser_list2.js"
+      siteRoot: ".kobweb/site"
+
+  port: 8080
