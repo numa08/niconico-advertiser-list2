@@ -6,24 +6,42 @@ kotlin-js-store
 
 # IntelliJ ignores
 *.iml
-/*.ipr
+*.ipr
 
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/gradle.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-/.idea/artifacts
-/.idea/compiler.xml
-/.idea/jarRepositories.xml
-/.idea/*.iml
-/.idea/modules
-/.idea/libraries-with-intellij-classes.xml
+# Ignore entire .idea directory
+.idea/
+
+# But track these shared project settings
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+!.idea/runConfigurations/
+!.idea/.gitignore
 
 # Gradle ignores
 .gradle
 
 # Kotlin ignores
 .kotlin
+
+# Claude Code ignores
+.claude/cache/
+.claude/mcp.json
+.claude/.env
+
+# Editor ignores
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# OS specific
+Thumbs.db
