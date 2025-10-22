@@ -30,6 +30,10 @@ kotlin {
             implementation(libs.kobwebx.serialization.kotlinx)
         }
 
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
+
         jsMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.html.core)
@@ -47,6 +51,17 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.ksoup)
+        }
+    }
+
+    // JS browser test configuration
+    js {
+        browser {
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
         }
     }
 }

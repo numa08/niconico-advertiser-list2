@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import net.numa08.niconico_advertiser_list2.models.NicoadHistory
 import net.numa08.niconico_advertiser_list2.models.VideoInfo
-import net.numa08.niconico_advertiser_list2.utils.VideoIdExtractor
+import net.numa08.niconico_advertiser_list2.util.VideoIdExtractor
 import org.jetbrains.compose.web.css.cssRem
 import org.jetbrains.compose.web.css.percent
 import org.jetbrains.compose.web.css.px
