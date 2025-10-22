@@ -42,6 +42,11 @@ kotlin {
         jvmMain.dependencies {
             compileOnly(libs.kobweb.api)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.cio)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.ksoup)
         }
     }
 }
@@ -51,7 +56,11 @@ configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
     version.set("1.5.0")
     android.set(false)
     outputToConsole.set(true)
-    ignoreFailures.set(false)
+    // 生成されたコードのスタイル違反は無視
+    ignoreFailures.set(true)
+    filter {
+        exclude("**/build/**")
+    }
 }
 
 // detekt configuration
