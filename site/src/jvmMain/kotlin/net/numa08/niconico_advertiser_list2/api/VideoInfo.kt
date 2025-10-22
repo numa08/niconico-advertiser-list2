@@ -19,11 +19,12 @@ suspend fun getVideoInfo(ctx: ApiContext) {
     }
 
     // TODO: 実際のニコニコ動画APIを呼び出す実装に置き換える
-    val mockVideoInfo = VideoInfo(
-        videoId = videoId,
-        title = "【モック】サンプル動画タイトル - $videoId",
-        thumbnail = "https://example.com/thumbnail.jpg"
-    )
+    val mockVideoInfo =
+        VideoInfo(
+            videoId = videoId,
+            title = "【モック】サンプル動画タイトル - $videoId",
+            thumbnail = "https://example.com/thumbnail.jpg",
+        )
 
     ctx.res.status = 200
     ctx.res.setBody(mockVideoInfo)

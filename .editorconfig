@@ -1,0 +1,31 @@
+# EditorConfig: https://editorconfig.org
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+max_line_length = 120
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 120
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+# Allow underscores in package names (e.g., niconico_advertiser_list2)
+ktlint_standard_package-name = disabled
+# Allow PascalCase function names (required for Compose functions)
+ktlint_standard_function-naming = disabled
+# Allow wildcard imports (common in Compose projects)
+ktlint_standard_no-wildcard-imports = disabled
+# Allow non-PascalCase file names (e.g., main.kt)
+ktlint_standard_filename = disabled
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

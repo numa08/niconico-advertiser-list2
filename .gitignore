@@ -45,3 +45,6 @@ logs/
 
 # OS specific
 Thumbs.db
+
+# Code quality tools
+site/detekt-baseline.xml

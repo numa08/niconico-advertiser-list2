@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.kobweb.application)
     alias(libs.plugins.kobwebx.markdown)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
 }
 
 group = "net.numa08.niconico_advertiser_list2"
@@ -42,4 +44,20 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
         }
     }
+}
+
+// ktlint configuration
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    version.set("1.5.0")
+    android.set(false)
+    outputToConsole.set(true)
+    ignoreFailures.set(false)
+}
+
+// detekt configuration
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+    config.setFrom("$projectDir/detekt.yml")
+    baseline = file("$projectDir/detekt-baseline.xml")
 }

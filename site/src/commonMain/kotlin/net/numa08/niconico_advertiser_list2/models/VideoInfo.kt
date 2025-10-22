@@ -11,5 +11,5 @@ import kotlinx.serialization.Serializable
 data class VideoInfo(
     val videoId: String,
     val title: String,
-    val thumbnail: String
+    val thumbnail: String,
 )

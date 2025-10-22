@@ -1,7 +1,6 @@
 package net.numa08.niconico_advertiser_list2.pages
 
 import androidx.compose.runtime.*
-import kotlinx.coroutines.launch
 import com.varabyte.kobweb.compose.css.FontWeight
 import com.varabyte.kobweb.compose.foundation.layout.Box
 import com.varabyte.kobweb.compose.foundation.layout.Column
@@ -14,14 +13,15 @@ import com.varabyte.kobweb.silk.components.forms.TextInput
 import com.varabyte.kobweb.silk.components.text.SpanText
 import kotlinx.browser.window
 import kotlinx.coroutines.await
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import net.numa08.niconico_advertiser_list2.models.NicoadHistory
 import net.numa08.niconico_advertiser_list2.models.VideoInfo
 import net.numa08.niconico_advertiser_list2.utils.VideoIdExtractor
-import org.w3c.fetch.RequestInit
 import org.jetbrains.compose.web.css.cssRem
 import org.jetbrains.compose.web.css.percent
 import org.jetbrains.compose.web.css.px
+import org.w3c.fetch.RequestInit
 
 /**
  * 動画検索ページ
@@ -37,27 +37,30 @@ fun VideoSearchPage() {
     var isLoading by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(2.cssRem)
-            .gap(1.cssRem),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(2.cssRem)
+                .gap(1.cssRem),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // タイトル
         SpanText(
             "ニコニコ動画 広告主リスト取得",
-            modifier = Modifier
-                .fontSize(2.cssRem)
-                .fontWeight(FontWeight.Bold)
-                .margin(bottom = 1.cssRem)
+            modifier =
+                Modifier
+                    .fontSize(2.cssRem)
+                    .fontWeight(FontWeight.Bold)
+                    .margin(bottom = 1.cssRem),
         )
 
         // 入力フォーム
         Column(
-            modifier = Modifier
-                .width(100.percent)
-                .maxWidth(600.px)
-                .gap(1.cssRem)
+            modifier =
+                Modifier
+                    .width(100.percent)
+                    .maxWidth(600.px)
+                    .gap(1.cssRem),
         ) {
             SpanText("動画URLまたは動画IDを入力してください")
 
@@ -65,9 +68,10 @@ fun VideoSearchPage() {
                 text = videoInput,
                 onTextChange = { videoInput = it },
                 placeholder = "例: sm12345678 または https://www.nicovideo.jp/watch/sm12345678",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(0.5.cssRem)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(0.5.cssRem),
             )
 
             // ボタン群
@@ -89,7 +93,7 @@ fun VideoSearchPage() {
                         }
                     },
                     enabled = !isLoading,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     SpanText(if (isLoading) "読み込み中..." else "動画情報を取得")
                 }
@@ -111,7 +115,7 @@ fun VideoSearchPage() {
                         }
                     },
                     enabled = !isLoading,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     SpanText(if (isLoading) "読み込み中..." else "広告履歴を取得")
                 }
@@ -120,15 +124,22 @@ fun VideoSearchPage() {
             // エラーメッセージ
             errorMessage?.let { error ->
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(1.cssRem)
-                        .backgroundColor(org.jetbrains.compose.web.css.Color("#ffebee"))
-                        .borderRadius(4.px)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(1.cssRem)
+                            .backgroundColor(
+                                org.jetbrains.compose.web.css
+                                    .Color("#ffebee"),
+                            ).borderRadius(4.px),
                 ) {
                     SpanText(
                         error,
-                        modifier = Modifier.color(org.jetbrains.compose.web.css.Color("#c62828"))
+                        modifier =
+                            Modifier.color(
+                                org.jetbrains.compose.web.css
+                                    .Color("#c62828"),
+                            ),
                     )
                 }
             }
@@ -137,13 +148,16 @@ fun VideoSearchPage() {
         // 動画情報表示
         videoInfo?.let { info ->
             Column(
-                modifier = Modifier
-                    .width(100.percent)
-                    .maxWidth(600.px)
-                    .padding(1.cssRem)
-                    .backgroundColor(org.jetbrains.compose.web.css.Color("#f5f5f5"))
-                    .borderRadius(8.px)
-                    .gap(0.5.cssRem)
+                modifier =
+                    Modifier
+                        .width(100.percent)
+                        .maxWidth(600.px)
+                        .padding(1.cssRem)
+                        .backgroundColor(
+                            org.jetbrains.compose.web.css
+                                .Color("#f5f5f5"),
+                        ).borderRadius(8.px)
+                        .gap(0.5.cssRem),
             ) {
                 SpanText("動画情報", modifier = Modifier.fontSize(1.5.cssRem).fontWeight(FontWeight.Bold))
                 SpanText("動画ID: ${info.videoId}")
@@ -155,13 +169,16 @@ fun VideoSearchPage() {
         // 広告履歴表示
         nicoadHistoryList?.let { historyList ->
             Column(
-                modifier = Modifier
-                    .width(100.percent)
-                    .maxWidth(600.px)
-                    .padding(1.cssRem)
-                    .backgroundColor(org.jetbrains.compose.web.css.Color("#f5f5f5"))
-                    .borderRadius(8.px)
-                    .gap(0.5.cssRem)
+                modifier =
+                    Modifier
+                        .width(100.percent)
+                        .maxWidth(600.px)
+                        .padding(1.cssRem)
+                        .backgroundColor(
+                            org.jetbrains.compose.web.css
+                                .Color("#f5f5f5"),
+                        ).borderRadius(8.px)
+                        .gap(0.5.cssRem),
             ) {
                 SpanText("広告履歴", modifier = Modifier.fontSize(1.5.cssRem).fontWeight(FontWeight.Bold))
                 SpanText("広告件数: ${historyList.size}")
@@ -169,11 +186,14 @@ fun VideoSearchPage() {
 
                 historyList.forEach { history ->
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(0.5.cssRem)
-                            .backgroundColor(org.jetbrains.compose.web.css.Color("#ffffff"))
-                            .borderRadius(4.px)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(0.5.cssRem)
+                                .backgroundColor(
+                                    org.jetbrains.compose.web.css
+                                        .Color("#ffffff"),
+                                ).borderRadius(4.px),
                     ) {
                         Column(modifier = Modifier.gap(0.25.cssRem)) {
                             SpanText("${history.advertiserName} (ID: ${history.nicoadId})")
@@ -197,12 +217,14 @@ fun VideoSearchPage() {
 /**
  * 動画情報を取得する
  */
-private suspend fun fetchVideoInfo(videoId: String): Pair<VideoInfo?, String?> {
-    return try {
-        val response = window.fetch(
-            "/api/video/info?videoId=$videoId",
-            RequestInit(method = "GET")
-        ).await()
+private suspend fun fetchVideoInfo(videoId: String): Pair<VideoInfo?, String?> =
+    try {
+        val response =
+            window
+                .fetch(
+                    "/api/video/info?videoId=$videoId",
+                    RequestInit(method = "GET"),
+                ).await()
 
         if (response.ok) {
             val json = response.text().await()
@@ -214,17 +236,18 @@ private suspend fun fetchVideoInfo(videoId: String): Pair<VideoInfo?, String?> {
     } catch (e: Exception) {
         Pair(null, "エラー: ${e.message}")
     }
-}
 
 /**
  * 広告履歴を取得する
  */
-private suspend fun fetchNicoadHistory(videoId: String): Pair<List<NicoadHistory>?, String?> {
-    return try {
-        val response = window.fetch(
-            "/api/video/nicoad-history?videoId=$videoId",
-            RequestInit(method = "GET")
-        ).await()
+private suspend fun fetchNicoadHistory(videoId: String): Pair<List<NicoadHistory>?, String?> =
+    try {
+        val response =
+            window
+                .fetch(
+                    "/api/video/nicoad-history?videoId=$videoId",
+                    RequestInit(method = "GET"),
+                ).await()
 
         if (response.ok) {
             val json = response.text().await()
@@ -236,4 +259,3 @@ private suspend fun fetchNicoadHistory(videoId: String): Pair<List<NicoadHistory
     } catch (e: Exception) {
         Pair(null, "エラー: ${e.message}")
     }
-}

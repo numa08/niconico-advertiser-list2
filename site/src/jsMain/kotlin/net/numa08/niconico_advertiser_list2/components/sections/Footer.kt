@@ -16,16 +16,17 @@ import com.varabyte.kobweb.silk.style.base
 import com.varabyte.kobweb.silk.style.toModifier
 import com.varabyte.kobweb.silk.style.vars.color.ColorVar
 import com.varabyte.kobweb.silk.theme.colors.ColorMode
+import net.numa08.niconico_advertiser_list2.toSitePalette
 import org.jetbrains.compose.web.css.cssRem
 import org.jetbrains.compose.web.css.percent
 import org.jetbrains.compose.web.dom.Span
-import net.numa08.niconico_advertiser_list2.toSitePalette
 
-val FooterStyle = CssStyle.base {
-    Modifier
-        .backgroundColor(colorMode.toSitePalette().nearBackground)
-        .padding(topBottom = 1.5.cssRem, leftRight = 10.percent)
-}
+val FooterStyle =
+    CssStyle.base {
+        Modifier
+            .backgroundColor(colorMode.toSitePalette().nearBackground)
+            .padding(topBottom = 1.5.cssRem, leftRight = 10.percent)
+    }
 
 @Composable
 fun Footer(modifier: Modifier = Modifier) {
@@ -37,7 +38,7 @@ fun Footer(modifier: Modifier = Modifier) {
                 "https://github.com/varabyte/kobweb",
                 "Kobweb",
                 Modifier.setVariable(ColorVar, sitePalette.brand.primary),
-                variant = UncoloredLinkVariant
+                variant = UncoloredLinkVariant,
             )
             SpanText(", template designed by ")
 
@@ -47,7 +48,7 @@ fun Footer(modifier: Modifier = Modifier) {
                 "https://ui-rocket.com",
                 "UI Rocket",
                 Modifier.setVariable(ColorVar, sitePalette.brand.accent).whiteSpace(WhiteSpace.NoWrap),
-                variant = UncoloredLinkVariant
+                variant = UncoloredLinkVariant,
             )
         }
     }
