@@ -14,6 +14,11 @@ import com.varabyte.kobweb.silk.components.forms.Button
 import com.varabyte.kobweb.silk.components.forms.TextInput
 import com.varabyte.kobweb.silk.components.graphics.Image
 import com.varabyte.kobweb.silk.components.text.SpanText
+import org.jetbrains.compose.web.attributes.selected
+import org.jetbrains.compose.web.dom.Option
+import org.jetbrains.compose.web.dom.Pre
+import org.jetbrains.compose.web.dom.Select
+import org.jetbrains.compose.web.dom.Text
 import kotlinx.browser.window
 import kotlinx.coroutines.await
 import kotlinx.coroutines.launch
@@ -38,6 +43,12 @@ fun VideoSearchPage() {
     var nicoadHistoryList by remember { mutableStateOf<List<NicoadHistory>?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+
+    // フォーマット設定
+    var honorific by remember { mutableStateOf("様") }
+    var customHonorific by remember { mutableStateOf("") }
+    var displayFormat by remember { mutableStateOf("すべて表示") }
+    var charsPerLine by remember { mutableStateOf("50") }
 
     Column(
         modifier =
@@ -202,7 +213,7 @@ fun VideoSearchPage() {
             }
         }
 
-        // 広告履歴表示
+        // 広告主リスト表示
         nicoadHistoryList?.let { historyList ->
             Column(
                 modifier =
@@ -214,40 +225,190 @@ fun VideoSearchPage() {
                             org.jetbrains.compose.web.css
                                 .Color("#f5f5f5"),
                         ).borderRadius(8.px)
-                        .gap(0.5.cssRem),
+                        .gap(1.cssRem),
             ) {
-                SpanText("広告履歴", modifier = Modifier.fontSize(1.5.cssRem).fontWeight(FontWeight.Bold))
+                SpanText("広告主リスト", modifier = Modifier.fontSize(1.5.cssRem).fontWeight(FontWeight.Bold))
                 SpanText("広告件数: ${historyList.size}")
                 SpanText("総貢献度: ${historyList.sumOf { it.contribution }}pt")
 
-                historyList.forEach { history ->
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(0.5.cssRem)
-                                .backgroundColor(
-                                    org.jetbrains.compose.web.css
-                                        .Color("#ffffff"),
-                                ).borderRadius(4.px),
-                    ) {
-                        Column(modifier = Modifier.gap(0.25.cssRem)) {
-                            SpanText("${history.advertiserName} (ID: ${history.nicoadId})")
-                            history.userId?.let { userId ->
-                                SpanText("ユーザーID: $userId")
+                // フォーマット設定
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(1.cssRem)
+                            .backgroundColor(org.jetbrains.compose.web.css.Color("#ffffff"))
+                            .borderRadius(4.px)
+                            .gap(1.cssRem),
+                ) {
+                    SpanText("表示設定", modifier = Modifier.fontWeight(FontWeight.Bold))
+
+                    // 敬称設定
+                    Column(modifier = Modifier.gap(0.5.cssRem)) {
+                        SpanText("敬称:")
+                        Select(
+                            attrs = {
+                                style {
+                                    property("padding", "0.5rem")
+                                    property("border-radius", "4px")
+                                    property("border", "1px solid #ccc")
+                                }
+                                onChange { event ->
+                                    honorific = event.target.value
+                                }
+                            },
+                        ) {
+                            listOf("様", "さん", "氏", "ちゃん", "くん", "カスタム").forEach { option ->
+                                Option(
+                                    value = option,
+                                    attrs = { if (option == honorific) selected() },
+                                ) {
+                                    Text(option)
+                                }
                             }
-                            SpanText("広告ポイント: ${history.adPoint}pt")
-                            SpanText("貢献度: ${history.contribution}pt")
-                            SpanText("開始: ${history.startedAt} / 終了: ${history.endedAt}")
-                            history.message?.let { msg ->
-                                SpanText("メッセージ: $msg")
+                        }
+                        if (honorific == "カスタム") {
+                            TextInput(
+                                text = customHonorific,
+                                onTextChange = { customHonorific = it },
+                                placeholder = "例: 殿",
+                                modifier = Modifier.width(150.px).padding(0.5.cssRem),
+                            )
+                        }
+                    }
+
+                    // リスト表示形式
+                    Column(modifier = Modifier.gap(0.5.cssRem)) {
+                        SpanText("リスト表示形式:")
+                        Select(
+                            attrs = {
+                                style {
+                                    property("padding", "0.5rem")
+                                    property("border-radius", "4px")
+                                    property("border", "1px solid #ccc")
+                                }
+                                onChange { event ->
+                                    displayFormat = event.target.value
+                                }
+                            },
+                        ) {
+                            listOf("すべて表示", "すべて表示（逆順）", "同じ名前をまとめる", "同じ名前をまとめる（逆順）").forEach { option ->
+                                Option(
+                                    value = option,
+                                    attrs = { if (option == displayFormat) selected() },
+                                ) {
+                                    Text(option)
+                                }
                             }
                         }
                     }
+
+                    // 1行の文字数
+                    Column(modifier = Modifier.gap(0.5.cssRem)) {
+                        SpanText("1行の文字数:")
+                        TextInput(
+                            text = charsPerLine,
+                            onTextChange = { charsPerLine = it },
+                            placeholder = "50",
+                            modifier = Modifier.width(100.px).padding(0.5.cssRem),
+                        )
+                    }
+                }
+
+                // フォーマット済み広告主リスト
+                val charsPerLineValue = (charsPerLine.toIntOrNull() ?: 1).coerceAtLeast(1)
+                val formattedList = formatAdvertiserList(historyList, honorific, customHonorific, displayFormat, charsPerLineValue)
+
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(1.cssRem)
+                            .backgroundColor(org.jetbrains.compose.web.css.Color("#ffffff"))
+                            .borderRadius(4.px),
+                ) {
+                    Pre(
+                        attrs = {
+                            style {
+                                property("font-family", "monospace")
+                                property("font-size", "0.9rem")
+                                property("white-space", "pre-wrap")
+                                property("margin", "0")
+                            }
+                        },
+                    ) {
+                        Text(formattedList)
+                    }
+                }
+
+                // クリップボードにコピーボタン
+                Button(
+                    onClick = {
+                        window.navigator.clipboard.writeText(formattedList)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    SpanText("クリップボードにコピー")
                 }
             }
         }
     }
+}
+
+/**
+ * 広告主リストをフォーマットする
+ */
+private fun formatAdvertiserList(
+    historyList: List<NicoadHistory>,
+    honorific: String,
+    customHonorific: String,
+    displayFormat: String,
+    charsPerLine: Int,
+): String {
+    // 敬称を決定
+    val suffix = if (honorific == "カスタム") customHonorific else honorific
+
+    // 広告主名のリストを作成
+    val names = historyList.map { it.advertiserName }
+
+    // 表示形式に応じて処理
+    val processedNames =
+        when (displayFormat) {
+            "すべて表示" -> names
+            "すべて表示（逆順）" -> names.reversed()
+            "同じ名前をまとめる" -> names.distinct()
+            "同じ名前をまとめる（逆順）" -> names.distinct().reversed()
+            else -> names
+        }
+
+    // 敬称を付ける
+    val namesWithHonorific = processedNames.map { "$it$suffix" }
+
+    // 1行の文字数で改行（人名は途中で改行しない）
+    val lines = mutableListOf<String>()
+    var currentLine = ""
+
+    for (name in namesWithHonorific) {
+        val testLine = if (currentLine.isEmpty()) name else "$currentLine　$name"
+
+        if (testLine.length <= charsPerLine) {
+            currentLine = testLine
+        } else {
+            // 現在の行を追加して新しい行を開始
+            if (currentLine.isNotEmpty()) {
+                lines.add(currentLine)
+            }
+            currentLine = name
+        }
+    }
+
+
+    // 最後の行を追加
+    if (currentLine.isNotEmpty()) {
+        lines.add(currentLine)
+    }
+
+    return lines.joinToString("\n")
 }
 
 /**
