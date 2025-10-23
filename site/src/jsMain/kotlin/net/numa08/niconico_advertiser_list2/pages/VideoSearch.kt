@@ -74,51 +74,46 @@ fun VideoSearchPage() {
                         .padding(0.5.cssRem),
             )
 
-            // ボタン群
-            Column(modifier = Modifier.gap(0.5.cssRem)) {
-                Button(
-                    onClick = {
-                        errorMessage = null
-                        val videoId = VideoIdExtractor.extractVideoId(videoInput)
-                        if (videoId != null) {
-                            isLoading = true
-                            scope.launch {
-                                val (result, error) = fetchVideoInfo(videoId)
-                                isLoading = false
-                                videoInfo = result
-                                errorMessage = error
-                            }
-                        } else {
-                            errorMessage = "有効な動画IDまたはURLを入力してください"
-                        }
-                    },
-                    enabled = !isLoading,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    SpanText(if (isLoading) "読み込み中..." else "動画情報を取得")
-                }
+            // 検索ボタン
+            Button(
+                onClick = {
+                    errorMessage = null
+                    val videoId = VideoIdExtractor.extractVideoId(videoInput)
+                    if (videoId != null) {
+                        isLoading = true
+                        scope.launch {
+                            val errors = mutableListOf<String>()
 
-                Button(
-                    onClick = {
-                        errorMessage = null
-                        val videoId = VideoIdExtractor.extractVideoId(videoInput)
-                        if (videoId != null) {
-                            isLoading = true
-                            scope.launch {
-                                val (result, error) = fetchNicoadHistory(videoId)
-                                isLoading = false
-                                nicoadHistoryList = result
-                                errorMessage = error
-                            }
-                        } else {
-                            errorMessage = "有効な動画IDまたはURLを入力してください"
+                            // 動画情報と広告履歴を並列取得
+                            val job1 =
+                                launch {
+                                    val (result, error) = fetchVideoInfo(videoId)
+                                    videoInfo = result
+                                    error?.let { errors.add(it) }
+                                }
+
+                            val job2 =
+                                launch {
+                                    val (result, error) = fetchNicoadHistory(videoId)
+                                    nicoadHistoryList = result
+                                    error?.let { errors.add(it) }
+                                }
+
+                            // 両方の完了を待つ
+                            job1.join()
+                            job2.join()
+
+                            isLoading = false
+                            errorMessage = errors.takeIf { it.isNotEmpty() }?.joinToString("; ")
                         }
-                    },
-                    enabled = !isLoading,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    SpanText(if (isLoading) "読み込み中..." else "広告履歴を取得")
-                }
+                    } else {
+                        errorMessage = "有効な動画IDまたはURLを入力してください"
+                    }
+                },
+                enabled = !isLoading,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                SpanText(if (isLoading) "読み込み中..." else "動画情報と広告履歴を取得")
             }
 
             // エラーメッセージ
