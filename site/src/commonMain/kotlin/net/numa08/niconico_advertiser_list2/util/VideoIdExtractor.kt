@@ -52,7 +52,13 @@ object VideoIdExtractor {
         }
 
         // /watch/の後の部分を取得
-        val videoId = path.substring(watchPrefix.length).split("?").first().split("#").first()
+        val videoId =
+            path
+                .substring(watchPrefix.length)
+                .split("?")
+                .first()
+                .split("#")
+                .first()
 
         // smから始まる数字のパターンをチェック
         if (!isValidVideoId(videoId)) {

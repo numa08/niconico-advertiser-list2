@@ -14,11 +14,6 @@ import com.varabyte.kobweb.silk.components.forms.Button
 import com.varabyte.kobweb.silk.components.forms.TextInput
 import com.varabyte.kobweb.silk.components.graphics.Image
 import com.varabyte.kobweb.silk.components.text.SpanText
-import org.jetbrains.compose.web.attributes.selected
-import org.jetbrains.compose.web.dom.Option
-import org.jetbrains.compose.web.dom.Pre
-import org.jetbrains.compose.web.dom.Select
-import org.jetbrains.compose.web.dom.Text
 import kotlinx.browser.window
 import kotlinx.coroutines.await
 import kotlinx.coroutines.launch
@@ -26,9 +21,14 @@ import kotlinx.serialization.json.Json
 import net.numa08.niconico_advertiser_list2.models.NicoadHistory
 import net.numa08.niconico_advertiser_list2.models.VideoInfo
 import net.numa08.niconico_advertiser_list2.util.VideoIdExtractor
+import org.jetbrains.compose.web.attributes.selected
 import org.jetbrains.compose.web.css.cssRem
 import org.jetbrains.compose.web.css.percent
 import org.jetbrains.compose.web.css.px
+import org.jetbrains.compose.web.dom.Option
+import org.jetbrains.compose.web.dom.Pre
+import org.jetbrains.compose.web.dom.Select
+import org.jetbrains.compose.web.dom.Text
 import org.w3c.fetch.RequestInit
 
 /**
@@ -237,8 +237,10 @@ fun VideoSearchPage() {
                         Modifier
                             .fillMaxWidth()
                             .padding(1.cssRem)
-                            .backgroundColor(org.jetbrains.compose.web.css.Color("#ffffff"))
-                            .borderRadius(4.px)
+                            .backgroundColor(
+                                org.jetbrains.compose.web.css
+                                    .Color("#ffffff"),
+                            ).borderRadius(4.px)
                             .gap(1.cssRem),
                 ) {
                     SpanText("表示設定", modifier = Modifier.fontWeight(FontWeight.Bold))
@@ -317,15 +319,18 @@ fun VideoSearchPage() {
 
                 // フォーマット済み広告主リスト
                 val charsPerLineValue = (charsPerLine.toIntOrNull() ?: 1).coerceAtLeast(1)
-                val formattedList = formatAdvertiserList(historyList, honorific, customHonorific, displayFormat, charsPerLineValue)
+                val formattedList =
+                    formatAdvertiserList(historyList, honorific, customHonorific, displayFormat, charsPerLineValue)
 
                 Box(
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(1.cssRem)
-                            .backgroundColor(org.jetbrains.compose.web.css.Color("#ffffff"))
-                            .borderRadius(4.px),
+                            .backgroundColor(
+                                org.jetbrains.compose.web.css
+                                    .Color("#ffffff"),
+                            ).borderRadius(4.px),
                 ) {
                     Pre(
                         attrs = {
@@ -401,7 +406,6 @@ private fun formatAdvertiserList(
             currentLine = name
         }
     }
-
 
     // 最後の行を追加
     if (currentLine.isNotEmpty()) {

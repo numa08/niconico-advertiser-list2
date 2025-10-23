@@ -6,6 +6,7 @@ import com.varabyte.kobweb.api.http.setBody
 import net.numa08.niconico_advertiser_list2.datasource.HttpClientFactory
 import net.numa08.niconico_advertiser_list2.datasource.NicoadDataSource
 import net.numa08.niconico_advertiser_list2.models.VideoInfo
+import net.numa08.niconico_advertiser_list2.util.RequestSemaphore
 
 /**
  * 動画情報取得API
@@ -21,7 +22,10 @@ suspend fun getVideoInfo(ctx: ApiContext) {
     }
 
     val dataSource = NicoadDataSource(HttpClientFactory.httpClient)
-    val result = dataSource.getVideoInformation(videoId)
+    val result =
+        RequestSemaphore.withLimit {
+            dataSource.getVideoInformation(videoId)
+        }
 
     result.fold(
         onSuccess = { response ->
