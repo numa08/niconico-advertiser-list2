@@ -1,0 +1,30 @@
+# ビルド成果物
+build/
+.gradle/
+.kotlin/
+site/build/
+site/.gradle/
+# site/.kobweb/ は conf.yaml が必要なのでコメントアウト
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Git
+.git/
+.gitignore
+
+# Node.js
+node_modules/
+kotlin-js-store/
+package-lock.json
+yarn.lock
+
+# その他
+.claude/
+.serena/
+*.log
+*.swp
+.DS_Store
+README.md
