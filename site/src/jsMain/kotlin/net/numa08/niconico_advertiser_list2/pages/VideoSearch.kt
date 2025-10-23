@@ -2,14 +2,17 @@ package net.numa08.niconico_advertiser_list2.pages
 
 import androidx.compose.runtime.*
 import com.varabyte.kobweb.compose.css.FontWeight
+import com.varabyte.kobweb.compose.css.ObjectFit
 import com.varabyte.kobweb.compose.foundation.layout.Box
 import com.varabyte.kobweb.compose.foundation.layout.Column
+import com.varabyte.kobweb.compose.foundation.layout.Row
 import com.varabyte.kobweb.compose.ui.Alignment
 import com.varabyte.kobweb.compose.ui.Modifier
 import com.varabyte.kobweb.compose.ui.modifiers.*
 import com.varabyte.kobweb.core.Page
 import com.varabyte.kobweb.silk.components.forms.Button
 import com.varabyte.kobweb.silk.components.forms.TextInput
+import com.varabyte.kobweb.silk.components.graphics.Image
 import com.varabyte.kobweb.silk.components.text.SpanText
 import kotlinx.browser.window
 import kotlinx.coroutines.await
@@ -152,12 +155,50 @@ fun VideoSearchPage() {
                             org.jetbrains.compose.web.css
                                 .Color("#f5f5f5"),
                         ).borderRadius(8.px)
-                        .gap(0.5.cssRem),
+                        .gap(1.cssRem),
             ) {
                 SpanText("動画情報", modifier = Modifier.fontSize(1.5.cssRem).fontWeight(FontWeight.Bold))
-                SpanText("動画ID: ${info.videoId}")
-                SpanText("タイトル: ${info.title}")
-                SpanText("サムネイル: ${info.thumbnail}")
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().gap(1.cssRem),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    // サムネイル画像
+                    Image(
+                        src = info.thumbnail,
+                        alt = info.title,
+                        modifier =
+                            Modifier
+                                .width(160.px)
+                                .height(90.px)
+                                .borderRadius(4.px)
+                                .objectFit(ObjectFit.Cover),
+                    )
+
+                    // タイトルと動画ID
+                    Column(
+                        modifier = Modifier.fillMaxWidth().gap(0.5.cssRem),
+                    ) {
+                        SpanText(
+                            info.title,
+                            modifier =
+                                Modifier
+                                    .fontSize(1.1.cssRem)
+                                    .fontWeight(FontWeight.Bold)
+                                    .lineHeight(1.4),
+                        )
+                        SpanText(
+                            "動画ID: ${info.videoId}",
+                            modifier =
+                                Modifier
+                                    .fontSize(0.9.cssRem)
+                                    .color(
+                                        org.jetbrains.compose.web.css
+                                            .Color("#666666"),
+                                    ),
+                        )
+                    }
+                }
             }
         }
 
