@@ -65,7 +65,15 @@ class NicoadDataSource(
             val limit = 100
             val apiUrl = nicoadHistoryURL(videoId, 0, limit)
             // 1度取得して、ページ数を取得する
-            val response = runCatching { httpClient.get(apiUrl).body<NicoadResponse>() }
+            val response =
+                runCatching {
+                    val httpResponse = httpClient.get(apiUrl)
+                    // 404チェック
+                    if (httpResponse.status.value == 404) {
+                        throw VideoNotFoundException("Video not found: $videoId")
+                    }
+                    httpResponse.body<NicoadResponse>()
+                }
             if (response.isFailure) {
                 return@coroutineScope Result.failure(response.exceptionOrNull()!!)
             }
@@ -97,32 +105,36 @@ class NicoadDataSource(
     /** 動画ページにアクセスし、htmlのヘッダー要素から動画情報を取得する */
     suspend fun getVideoInformation(videoId: String): Result<NiconicoVideoInformationResponse> {
         val url = "https://www.nicovideo.jp/watch/$videoId"
-        val response =
-            runCatching {
-                httpClient
-                    .get(url) {
-                        headers {
-                            append(
-                                HttpHeaders.Accept,
-                                "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                            )
-                            append(
-                                HttpHeaders.AcceptLanguage,
-                                "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7,de-DE;q=0.6,de;q=0.5,fr-FR;q=0.4,fr;q=0.3,zh-TW;q=0.2,zh;q=0.1,ko-KR;q=0.1,ko;q=0.1",
-                            )
-                        }
-                    }.bodyAsText()
-            }.map { body ->
-                val metadata = Ksoup.parseMetaData(body)
-                val userId = extractUserIdFromHtml(body)
-                NiconicoVideoInformationResponse(
-                    videoId = videoId,
-                    title = metadata.ogTitle ?: metadata.title ?: "",
-                    thumbnail = metadata.ogImage ?: "",
-                    userId = userId,
-                )
+        return runCatching {
+            val httpResponse =
+                httpClient.get(url) {
+                    headers {
+                        append(
+                            HttpHeaders.Accept,
+                            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                        )
+                        append(
+                            HttpHeaders.AcceptLanguage,
+                            "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7,de-DE;q=0.6,de;q=0.5,fr-FR;q=0.4,fr;q=0.3,zh-TW;q=0.2,zh;q=0.1,ko-KR;q=0.1,ko;q=0.1",
+                        )
+                    }
+                }
+
+            // 404チェック
+            if (httpResponse.status.value == 404) {
+                throw VideoNotFoundException("Video not found: $videoId")
             }
-        return response
+
+            val body = httpResponse.bodyAsText()
+            val metadata = Ksoup.parseMetaData(body)
+            val userId = extractUserIdFromHtml(body)
+            NiconicoVideoInformationResponse(
+                videoId = videoId,
+                title = metadata.ogTitle ?: metadata.title ?: "",
+                thumbnail = metadata.ogImage ?: "",
+                userId = userId,
+            )
+        }
     }
 
     /**

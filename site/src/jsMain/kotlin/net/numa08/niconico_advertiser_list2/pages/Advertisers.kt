@@ -61,19 +61,26 @@ fun AdvertisersPage() {
         if (videoId.isNotEmpty()) {
             isLoading = true
             val errors = mutableListOf<String>()
+            var has404 = false
 
             // 動画情報と広告履歴を並列取得
             val job1 =
                 launch {
-                    val (result, error) = fetchVideoInfo(videoId)
+                    val (result, statusCode, error) = fetchVideoInfo(videoId)
                     videoInfo = result
+                    if (statusCode == 404) {
+                        has404 = true
+                    }
                     error?.let { errors.add(it) }
                 }
 
             val job2 =
                 launch {
-                    val (result, error) = fetchNicoadHistory(videoId)
+                    val (result, statusCode, error) = fetchNicoadHistory(videoId)
                     nicoadHistoryList = result
+                    if (statusCode == 404) {
+                        has404 = true
+                    }
                     error?.let { errors.add(it) }
                 }
 
@@ -82,7 +89,13 @@ fun AdvertisersPage() {
             job2.join()
 
             isLoading = false
-            errorMessage = errors.takeIf { it.isNotEmpty() }?.joinToString("; ")
+
+            // 404の場合は404ページにリダイレクト
+            if (has404) {
+                ctx.router.navigateTo("/404")
+            } else {
+                errorMessage = errors.takeIf { it.isNotEmpty() }?.joinToString("; ")
+            }
         }
     }
 
@@ -348,8 +361,9 @@ fun AdvertisersPage() {
 
 /**
  * 動画情報を取得する
+ * @return Triple(データ, HTTPステータスコード, エラーメッセージ)
  */
-private suspend fun fetchVideoInfo(videoId: String): Pair<VideoInfo?, String?> =
+private suspend fun fetchVideoInfo(videoId: String): Triple<VideoInfo?, Int, String?> =
     try {
         val response =
             window
@@ -359,18 +373,19 @@ private suspend fun fetchVideoInfo(videoId: String): Pair<VideoInfo?, String?> =
         if (response.ok) {
             val json = response.text().await()
             val videoInfo = Json.decodeFromString<VideoInfo>(json)
-            Pair(videoInfo, null)
+            Triple(videoInfo, response.status.toInt(), null)
         } else {
-            Pair(null, "動画情報の取得に失敗しました: ${response.statusText}")
+            Triple(null, response.status.toInt(), "動画情報の取得に失敗しました: ${response.statusText}")
         }
     } catch (e: Exception) {
-        Pair(null, "エラーが発生しました: ${e.message}")
+        Triple(null, 500, "エラーが発生しました: ${e.message}")
     }
 
 /**
  * 広告履歴を取得する
+ * @return Triple(データ, HTTPステータスコード, エラーメッセージ)
  */
-private suspend fun fetchNicoadHistory(videoId: String): Pair<List<NicoadHistory>?, String?> =
+private suspend fun fetchNicoadHistory(videoId: String): Triple<List<NicoadHistory>?, Int, String?> =
     try {
         val response =
             window
@@ -380,12 +395,12 @@ private suspend fun fetchNicoadHistory(videoId: String): Pair<List<NicoadHistory
         if (response.ok) {
             val json = response.text().await()
             val historyList = Json.decodeFromString<List<NicoadHistory>>(json)
-            Pair(historyList, null)
+            Triple(historyList, response.status.toInt(), null)
         } else {
-            Pair(null, "広告履歴の取得に失敗しました: ${response.statusText}")
+            Triple(null, response.status.toInt(), "広告履歴の取得に失敗しました: ${response.statusText}")
         }
     } catch (e: Exception) {
-        Pair(null, "エラーが発生しました: ${e.message}")
+        Triple(null, 500, "エラーが発生しました: ${e.message}")
     }
 
 /**

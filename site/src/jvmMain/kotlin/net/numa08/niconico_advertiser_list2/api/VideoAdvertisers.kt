@@ -5,6 +5,7 @@ import com.varabyte.kobweb.api.ApiContext
 import com.varabyte.kobweb.api.http.setBody
 import net.numa08.niconico_advertiser_list2.datasource.HttpClientFactory
 import net.numa08.niconico_advertiser_list2.datasource.NicoadDataSource
+import net.numa08.niconico_advertiser_list2.datasource.VideoNotFoundException
 import net.numa08.niconico_advertiser_list2.models.NicoadHistory
 import net.numa08.niconico_advertiser_list2.util.RequestSemaphore
 
@@ -46,8 +47,16 @@ suspend fun getVideoNicoadHistory(ctx: ApiContext) {
             ctx.res.setBody(histories)
         },
         onFailure = { error ->
-            ctx.res.status = 500
-            ctx.res.setBody(mapOf("error" to (error.message ?: "Unknown error")))
+            when (error) {
+                is VideoNotFoundException -> {
+                    ctx.res.status = 404
+                    ctx.res.setBody(mapOf("error" to (error.message ?: "Video not found")))
+                }
+                else -> {
+                    ctx.res.status = 500
+                    ctx.res.setBody(mapOf("error" to (error.message ?: "Unknown error")))
+                }
+            }
         },
     )
 }
