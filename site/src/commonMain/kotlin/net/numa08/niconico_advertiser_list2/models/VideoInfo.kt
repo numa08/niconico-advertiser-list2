@@ -6,10 +6,12 @@ import kotlinx.serialization.Serializable
  * ニコニコ動画の基本情報
  *
  * @property thumbnail サムネイルURL（JVM側ではjava.net.URLとして扱う）
+ * @property userId 投稿者のユーザーID
  */
 @Serializable
 data class VideoInfo(
     val videoId: String,
     val title: String,
     val thumbnail: String,
+    val userId: String,
 )

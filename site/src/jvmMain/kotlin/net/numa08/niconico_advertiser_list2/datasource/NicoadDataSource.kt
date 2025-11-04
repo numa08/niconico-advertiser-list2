@@ -14,11 +14,29 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import net.numa08.niconico_advertiser_list2.datasource.response.NicoadHistoryResponse
 import net.numa08.niconico_advertiser_list2.datasource.response.NicoadResponse
 import net.numa08.niconico_advertiser_list2.datasource.response.NiconicoVideoInformationResponse
 import kotlin.math.ceil
 import kotlin.random.Random
+
+/**
+ * JSON-LDスキーマのVideoObject用データクラス（部分的）
+ */
+@Serializable
+private data class JsonLdVideoObject(
+    val author: JsonLdAuthor? = null,
+)
+
+/**
+ * JSON-LDスキーマのAuthor用データクラス
+ */
+@Serializable
+private data class JsonLdAuthor(
+    val url: String? = null,
+)
 
 /**
  * ニコニコ動画のAPIやWebページにアクセスして情報を取得するデータソース
@@ -37,6 +55,8 @@ class NicoadDataSource(
             offset: Int,
             limit: Int,
         ): String = "https://api.nicoad.nicovideo.jp/v1/contents/video/$videoId/histories?offset=$offset&limit=$limit"
+
+        private val json = Json { ignoreUnknownKeys = true }
     }
 
     /** ページネーションされたニコニコ動画広告履歴データを取得し、一つのリストでレスポンスする */
@@ -94,12 +114,60 @@ class NicoadDataSource(
                     }.bodyAsText()
             }.map { body ->
                 val metadata = Ksoup.parseMetaData(body)
+                val userId = extractUserIdFromHtml(body)
                 NiconicoVideoInformationResponse(
                     videoId = videoId,
                     title = metadata.ogTitle ?: metadata.title ?: "",
                     thumbnail = metadata.ogImage ?: "",
+                    userId = userId,
                 )
             }
         return response
+    }
+
+    /**
+     * HTMLから投稿者のユーザーIDを抽出する
+     *
+     * 優先順位:
+     * 1. JSON-LDスキーマのauthor.urlから抽出
+     * 2. 正規表現で/user/{userId}パターンを検索
+     */
+    private fun extractUserIdFromHtml(html: String): String {
+        // 方法1: Ksoupを使ってJSON-LDスキーマから抽出
+        try {
+            val document = Ksoup.parse(html)
+            val jsonLdScripts = document.select("script[type=application/ld+json]")
+
+            for (script in jsonLdScripts) {
+                val jsonText = script.data()
+                try {
+                    val videoObject = json.decodeFromString<JsonLdVideoObject>(jsonText)
+                    val authorUrl = videoObject.author?.url
+                    if (authorUrl != null) {
+                        // URLから/user/{userId}パターンを抽出
+                        val userIdPattern = Regex("""/user/(\d+)""")
+                        val match = userIdPattern.find(authorUrl)
+                        if (match != null) {
+                            return match.groupValues[1]
+                        }
+                    }
+                } catch (e: Exception) {
+                    // このJSON-LDブロックはVideoObjectではない、次を試す
+                    continue
+                }
+            }
+        } catch (e: Exception) {
+            // パース失敗、フォールバックへ
+        }
+
+        // 方法2: HTML全体から/user/{userId}パターンを検索（フォールバック）
+        val userLinkPattern = Regex("""/user/(\d+)""")
+        val userMatch = userLinkPattern.find(html)
+        if (userMatch != null) {
+            return userMatch.groupValues[1]
+        }
+
+        // 見つからない場合は空文字列を返す
+        return ""
     }
 }

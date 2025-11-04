@@ -34,6 +34,7 @@ suspend fun getVideoInfo(ctx: ApiContext) {
                     videoId = response.videoId,
                     title = response.title,
                     thumbnail = response.thumbnail,
+                    userId = response.userId,
                 )
             ctx.res.status = 200
             ctx.res.setBody(videoInfo)

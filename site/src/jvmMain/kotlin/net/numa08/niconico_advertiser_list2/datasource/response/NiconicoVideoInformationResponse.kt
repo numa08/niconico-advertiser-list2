@@ -10,4 +10,5 @@ data class NiconicoVideoInformationResponse(
     val videoId: String,
     val title: String,
     val thumbnail: String,
+    val userId: String,
 )
