@@ -3,48 +3,46 @@ package net.numa08.niconico_advertiser_list2.api
 import com.varabyte.kobweb.api.Api
 import com.varabyte.kobweb.api.ApiContext
 import com.varabyte.kobweb.api.http.setBody
-import net.numa08.niconico_advertiser_list2.datasource.HttpClientFactory
-import net.numa08.niconico_advertiser_list2.datasource.NicoadDataSource
+import net.numa08.niconico_advertiser_list2.cache.VideoCacheService
 import net.numa08.niconico_advertiser_list2.datasource.VideoNotFoundException
-import net.numa08.niconico_advertiser_list2.models.NicoadHistory
-import net.numa08.niconico_advertiser_list2.util.RequestSemaphore
+import net.numa08.niconico_advertiser_list2.models.NicoadHistoryResponse
 
 /**
  * ニコニ広告履歴取得API
- * エンドポイント: GET /api/video/nicoad-history?videoId={videoId}
+ * エンドポイント: GET /api/video/nicoad-history?videoId={videoId}&refresh={true|false}
+ *
+ * クエリパラメータ:
+ * - videoId: 動画ID（必須）
+ * - refresh: キャッシュを強制更新する場合はtrue（オプション、デフォルト: false）
  */
 @Api(routeOverride = "video/nicoad-history")
-suspend fun getVideoNicoadHistory(ctx: ApiContext) {
+fun getVideoNicoadHistory(ctx: ApiContext) {
     val videoId = ctx.req.params["videoId"]
+    val forceRefresh = ctx.req.params["refresh"]?.toBoolean() ?: false
 
     if (videoId.isNullOrBlank()) {
         ctx.res.status = 400
         return
     }
 
-    val dataSource = NicoadDataSource(HttpClientFactory.httpClient)
     val result =
-        RequestSemaphore.withLimit {
-            dataSource.getNicoadHistories(videoId)
+        if (forceRefresh) {
+            VideoCacheService.refreshNicoadHistory(videoId)
+        } else {
+            VideoCacheService.getNicoadHistory(videoId)
         }
 
     result.fold(
-        onSuccess = { responses ->
-            val histories =
-                responses.map { response ->
-                    NicoadHistory(
-                        advertiserName = response.advertiserName,
-                        nicoadId = response.nicoadId,
-                        adPoint = response.adPoint,
-                        contribution = response.contribution,
-                        startedAt = response.startedAt,
-                        endedAt = response.endedAt,
-                        userId = response.userId,
-                        message = response.message,
-                    )
-                }
+        onSuccess = { cached ->
+            val response =
+                NicoadHistoryResponse(
+                    histories = cached.histories,
+                    cachedAt = cached.cachedAt.toString(),
+                    fromCache = !forceRefresh,
+                )
             ctx.res.status = 200
-            ctx.res.setBody(histories)
+            // 圧縮を無効化
+            ctx.res.setBody(response)
         },
         onFailure = { error ->
             when (error) {

@@ -3,19 +3,15 @@ package net.numa08.niconico_advertiser_list2.models
 import kotlinx.serialization.Serializable
 
 /**
- * ニコニコ動画の基本情報
+ * ニコニ広告履歴のレスポンス
  *
- * @property thumbnail サムネイルURL（JVM側ではjava.net.URLとして扱う）
- * @property userId 投稿者のユーザーID
+ * @property histories 広告履歴のリスト
  * @property cachedAt キャッシュされた日時（ISO8601形式）
  * @property fromCache キャッシュから取得されたかどうか
  */
 @Serializable
-data class VideoInfo(
-    val videoId: String,
-    val title: String,
-    val thumbnail: String,
-    val userId: String,
+data class NicoadHistoryResponse(
+    val histories: List<NicoadHistory>,
     val cachedAt: String? = null,
     val fromCache: Boolean = false,
 )

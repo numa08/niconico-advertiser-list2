@@ -1,4 +1,5 @@
 [versions]
+caffeine = "3.2.3"
 detekt = "1.23.8"
 jetbrains-compose = "1.8.0"
 kobweb = "0.23.3"
@@ -9,6 +10,7 @@ ktor = "3.3.0"
 ktlint = "13.1.0"
 
 [libraries]
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 compose-html-core = { module = "org.jetbrains.compose.html:html-core", version.ref = "jetbrains-compose" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "jetbrains-compose" }
 kobweb-api = { module = "com.varabyte.kobweb:kobweb-api", version.ref = "kobweb" }

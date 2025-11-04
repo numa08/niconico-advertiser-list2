@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import net.numa08.niconico_advertiser_list2.components.VideoSearchForm
 import net.numa08.niconico_advertiser_list2.models.NicoadHistory
+import net.numa08.niconico_advertiser_list2.models.NicoadHistoryResponse
 import net.numa08.niconico_advertiser_list2.models.VideoInfo
 import org.jetbrains.compose.web.attributes.selected
 import org.jetbrains.compose.web.css.cssRem
@@ -31,6 +32,18 @@ import org.jetbrains.compose.web.dom.Pre
 import org.jetbrains.compose.web.dom.Select
 import org.jetbrains.compose.web.dom.Text
 import org.w3c.fetch.RequestInit
+import kotlin.js.Date
+
+/**
+ * キャッシュの動作を定義するenum
+ */
+enum class CacheBehavior {
+    /** キャッシュを利用する */
+    USE_CACHE,
+
+    /** キャッシュを強制的に更新する */
+    FORCE_REFRESH,
+}
 
 /**
  * 広告主リスト表示ページ（動的ルーティング）
@@ -49,6 +62,7 @@ fun AdvertisersPage() {
     var nicoadHistoryList by remember { mutableStateOf<List<NicoadHistory>?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var isRefreshing by remember { mutableStateOf(false) }
 
     // フォーマット設定
     var honorific by remember { mutableStateOf("様") }
@@ -66,7 +80,7 @@ fun AdvertisersPage() {
             // 動画情報と広告履歴を並列取得
             val job1 =
                 launch {
-                    val (result, statusCode, error) = fetchVideoInfo(videoId)
+                    val (result, statusCode, error) = fetchVideoInfo(videoId, CacheBehavior.USE_CACHE)
                     videoInfo = result
                     if (statusCode == 404) {
                         has404 = true
@@ -76,7 +90,7 @@ fun AdvertisersPage() {
 
             val job2 =
                 launch {
-                    val (result, statusCode, error) = fetchNicoadHistory(videoId)
+                    val (result, statusCode, error) = fetchNicoadHistory(videoId, CacheBehavior.USE_CACHE)
                     nicoadHistoryList = result
                     if (statusCode == 404) {
                         has404 = true
@@ -122,6 +136,81 @@ fun AdvertisersPage() {
             initialValue = videoId,
             onError = { error -> errorMessage = error },
         )
+
+        // リフレッシュボタン（データが存在する場合のみ表示）
+        if (videoId.isNotEmpty() && (videoInfo != null || nicoadHistoryList != null)) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .maxWidth(600.px)
+                        .gap(1.cssRem),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            isRefreshing = true
+                            errorMessage = null
+                            val errors = mutableListOf<String>()
+
+                            // 動画情報と広告履歴を並列で強制更新
+                            val job1 =
+                                launch {
+                                    val (result, _, error) = fetchVideoInfo(videoId, CacheBehavior.FORCE_REFRESH)
+                                    videoInfo = result
+                                    error?.let { errors.add(it) }
+                                }
+
+                            val job2 =
+                                launch {
+                                    val (result, _, error) = fetchNicoadHistory(videoId, CacheBehavior.FORCE_REFRESH)
+                                    nicoadHistoryList = result
+                                    error?.let { errors.add(it) }
+                                }
+
+                            job1.join()
+                            job2.join()
+
+                            isRefreshing = false
+                            errorMessage = errors.takeIf { it.isNotEmpty() }?.joinToString("; ")
+                        }
+                    },
+                    enabled = !isLoading && !isRefreshing,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    SpanText(if (isRefreshing) "更新中..." else "データを更新")
+                }
+            }
+
+            // キャッシュ情報
+            videoInfo?.let { info ->
+                if (info.cachedAt != null) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .maxWidth(600.px)
+                                .padding(0.5.cssRem)
+                                .backgroundColor(
+                                    org.jetbrains.compose.web.css
+                                        .Color("#e3f2fd"),
+                                ).borderRadius(4.px),
+                    ) {
+                        SpanText(
+                            "キャッシュ: ${if (info.fromCache) "利用中" else "更新済"} (${formatDateTime(info.cachedAt)})",
+                            modifier =
+                                Modifier
+                                    .fontSize(0.85.cssRem)
+                                    .color(
+                                        org.jetbrains.compose.web.css
+                                            .Color("#1565c0"),
+                                    ),
+                        )
+                    }
+                }
+            }
+        }
 
         // ローディング表示
         if (isLoading) {
@@ -361,13 +450,21 @@ fun AdvertisersPage() {
 
 /**
  * 動画情報を取得する
+ * @param videoId 動画ID
+ * @param cacheBehavior キャッシュの動作
  * @return Triple(データ, HTTPステータスコード, エラーメッセージ)
  */
-private suspend fun fetchVideoInfo(videoId: String): Triple<VideoInfo?, Int, String?> =
+private suspend fun fetchVideoInfo(
+    videoId: String,
+    cacheBehavior: CacheBehavior = CacheBehavior.USE_CACHE,
+): Triple<VideoInfo?, Int, String?> =
     try {
+        val url =
+            "/api/video/info?videoId=$videoId" +
+                if (cacheBehavior == CacheBehavior.FORCE_REFRESH) "&refresh=true" else ""
         val response =
             window
-                .fetch("/api/video/info?videoId=$videoId", RequestInit())
+                .fetch(url, RequestInit())
                 .await()
 
         if (response.ok) {
@@ -383,19 +480,27 @@ private suspend fun fetchVideoInfo(videoId: String): Triple<VideoInfo?, Int, Str
 
 /**
  * 広告履歴を取得する
+ * @param videoId 動画ID
+ * @param cacheBehavior キャッシュの動作
  * @return Triple(データ, HTTPステータスコード, エラーメッセージ)
  */
-private suspend fun fetchNicoadHistory(videoId: String): Triple<List<NicoadHistory>?, Int, String?> =
+private suspend fun fetchNicoadHistory(
+    videoId: String,
+    cacheBehavior: CacheBehavior = CacheBehavior.USE_CACHE,
+): Triple<List<NicoadHistory>?, Int, String?> =
     try {
+        val url =
+            "/api/video/nicoad-history?videoId=$videoId" +
+                if (cacheBehavior == CacheBehavior.FORCE_REFRESH) "&refresh=true" else ""
         val response =
             window
-                .fetch("/api/video/nicoad-history?videoId=$videoId", RequestInit())
+                .fetch(url, RequestInit())
                 .await()
 
         if (response.ok) {
             val json = response.text().await()
-            val historyList = Json.decodeFromString<List<NicoadHistory>>(json)
-            Triple(historyList, response.status.toInt(), null)
+            val historyResponse = Json.decodeFromString<NicoadHistoryResponse>(json)
+            Triple(historyResponse.histories, response.status.toInt(), null)
         } else {
             Triple(null, response.status.toInt(), "広告履歴の取得に失敗しました: ${response.statusText}")
         }
@@ -467,3 +572,25 @@ private fun formatNamesWithLineBreaks(
 
     return result.toString()
 }
+
+/**
+ * ISO8601形式の日時文字列を人間が読みやすい形式に変換する
+ * ブラウザのタイムゾーンでローカライズされた日時を返す
+ *
+ * @param isoString ISO8601形式の日時文字列（例: "2025-11-05T12:34:56.789Z"）
+ * @return 読みやすい形式の日時文字列（例: "2025年11月5日 21:34:56"）
+ */
+private fun formatDateTime(isoString: String): String =
+    try {
+        val date = Date(isoString)
+        val year = date.getFullYear()
+        val month = date.getMonth() + 1 // 0-11なので+1
+        val day = date.getDate()
+        val hours = date.getHours().toString().padStart(2, '0')
+        val minutes = date.getMinutes().toString().padStart(2, '0')
+        val seconds = date.getSeconds().toString().padStart(2, '0')
+
+        "${year}年${month}月${day}日 $hours:$minutes:$seconds"
+    } catch (e: Exception) {
+        isoString // エラー時は元の文字列を返す
+    }
