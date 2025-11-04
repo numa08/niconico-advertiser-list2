@@ -8,6 +8,48 @@ import kotlin.test.assertNull
  * VideoIdExtractorのユニットテスト
  */
 class VideoIdExtractorTest {
+    // 動画ID直接入力のテスト
+    @Test
+    fun extractVideoId_withDirectVideoId_returnsVideoId() {
+        // 正常系: 動画IDを直接入力
+        val input = "sm12345678"
+        val result = VideoIdExtractor.extractVideoId(input)
+        assertEquals("sm12345678", result)
+    }
+
+    @Test
+    fun extractVideoId_withDirectVideoIdAndWhitespace_returnsVideoId() {
+        // 正常系: 動画IDを前後に空白付きで入力
+        val input = "  sm12345678  "
+        val result = VideoIdExtractor.extractVideoId(input)
+        assertEquals("sm12345678", result)
+    }
+
+    @Test
+    fun extractVideoId_withDirectVideoIdSingleDigit_returnsVideoId() {
+        // 正常系: 1桁の数字の動画ID
+        val input = "sm1"
+        val result = VideoIdExtractor.extractVideoId(input)
+        assertEquals("sm1", result)
+    }
+
+    @Test
+    fun extractVideoId_withDirectSmOnly_returnsNull() {
+        // 異常系: smのみ（動画ID直接入力）
+        val input = "sm"
+        val result = VideoIdExtractor.extractVideoId(input)
+        assertNull(result)
+    }
+
+    @Test
+    fun extractVideoId_withDirectNonNumericAfterSm_returnsNull() {
+        // 異常系: sm以降が数字でない（動画ID直接入力）
+        val input = "smabc123"
+        val result = VideoIdExtractor.extractVideoId(input)
+        assertNull(result)
+    }
+
+    // URL形式のテスト
     @Test
     fun extractVideoId_withValidHttpsWwwUrl_returnsVideoId() {
         // 正常系: https://www.nicovideo.jp/watch/sm12345678

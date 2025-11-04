@@ -5,19 +5,26 @@ package net.numa08.niconico_advertiser_list2.util
  */
 object VideoIdExtractor {
     /**
-     * URLから動画IDを抽出する
+     * URLまたは動画IDから動画IDを抽出する
      *
-     * @param url ニコニコ動画のURL
+     * @param input ニコニコ動画のURLまたは動画ID（例: sm12345678）
      * @return 抽出された動画ID。抽出できない場合はnull
      */
-    fun extractVideoId(url: String): String? {
+    fun extractVideoId(input: String): String? {
         // 空文字チェック
-        if (url.isBlank()) return null
+        if (input.isBlank()) return null
 
-        // URLのパース
+        val trimmedInput = input.trim()
+
+        // まず、直接動画IDとして有効かチェック
+        if (isValidVideoId(trimmedInput)) {
+            return trimmedInput
+        }
+
+        // URLとしてパース
         val parsedUrl =
             try {
-                parseUrl(url)
+                parseUrl(trimmedInput)
             } catch (e: Exception) {
                 return null
             }
