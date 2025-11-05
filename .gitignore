@@ -48,3 +48,6 @@ Thumbs.db
 
 # Code quality tools
 site/detekt-baseline.xml
+
+# Playwright MCP
+.playwright-mcp/
