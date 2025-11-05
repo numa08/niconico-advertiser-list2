@@ -28,7 +28,7 @@ RUN wget https://github.com/varabyte/kobweb-cli/releases/download/v${KOBWEB_CLI_
 RUN npx playwright install --with-deps chromium
 
 # 1. Gradle関連ファイルをコピー（依存関係キャッシュ用）
-COPY gradle.properties settings.gradle.kts gradlew gradlew.bat ./
+COPY gradle.properties settings.gradle.kts gradlew gradlew.bat gradle-ci.properties ./
 COPY gradle/wrapper/ ./gradle/wrapper/
 COPY gradle/libs.versions.toml ./gradle/
 
@@ -37,15 +37,15 @@ COPY ${KOBWEB_APP_ROOT}/build.gradle.kts ./${KOBWEB_APP_ROOT}/
 COPY ${KOBWEB_APP_ROOT}/.kobweb/conf.yaml ./${KOBWEB_APP_ROOT}/.kobweb/
 
 # 3. 依存関係をダウンロード（この層はソースコード変更時にキャッシュされる）
-RUN chmod +x ./gradlew && \
-    ./gradlew dependencies --no-daemon || true
+RUN chmod +x ./gradlew -Dorg.gradle.project.file=gradle-ci.properties && \
+    ./gradlew -Dorg.gradle.project.file=gradle-ci.properties dependencies --no-daemon || true
 
 # 4. ソースコードをコピー
 COPY ${KOBWEB_APP_ROOT}/src/ ./${KOBWEB_APP_ROOT}/src/
 
 # 5. Gradleビルド実行（ブラウザテストをスキップ）
 WORKDIR /project/${KOBWEB_APP_ROOT}
-RUN ../gradlew -Dfile.encoding=UTF-8 build -x jsBrowserTest && \
+RUN ../gradlew -Dorg.gradle.project.file=gradle-ci.properties -Dfile.encoding=UTF-8 build -x jsBrowserTest && \
     kobweb export --notty
 
 # =======================================
