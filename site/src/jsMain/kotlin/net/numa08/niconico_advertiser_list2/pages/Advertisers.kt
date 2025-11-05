@@ -23,14 +23,19 @@ import net.numa08.niconico_advertiser_list2.components.VideoSearchForm
 import net.numa08.niconico_advertiser_list2.models.NicoadHistory
 import net.numa08.niconico_advertiser_list2.models.NicoadHistoryResponse
 import net.numa08.niconico_advertiser_list2.models.VideoInfo
+import net.numa08.niconico_advertiser_list2.theme.Theme
+import net.numa08.niconico_advertiser_list2.theme.current
 import org.jetbrains.compose.web.attributes.selected
+import org.jetbrains.compose.web.css.Color
 import org.jetbrains.compose.web.css.cssRem
 import org.jetbrains.compose.web.css.percent
 import org.jetbrains.compose.web.css.px
+import org.jetbrains.compose.web.dom.AttrBuilderContext
 import org.jetbrains.compose.web.dom.Option
 import org.jetbrains.compose.web.dom.Pre
 import org.jetbrains.compose.web.dom.Select
 import org.jetbrains.compose.web.dom.Text
+import org.w3c.dom.HTMLPreElement
 import org.w3c.fetch.RequestInit
 import kotlin.js.Date
 
@@ -54,6 +59,7 @@ enum class CacheBehavior {
 fun AdvertisersPage() {
     val ctx = rememberPageContext()
     val scope = rememberCoroutineScope()
+    val theme = Theme.current
 
     // URLパラメータから取得
     val videoId = ctx.route.params["videoId"] ?: ""
@@ -117,25 +123,44 @@ fun AdvertisersPage() {
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(2.cssRem)
-                .gap(1.cssRem),
+                .padding(top = 4.cssRem, bottom = 4.cssRem, leftRight = 2.cssRem)
+                .gap(2.cssRem),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // タイトル
         SpanText(
-            "ニコニコ動画 広告主リスト",
+            text = "ニコニコ動画 広告主リスト取得",
             modifier =
                 Modifier
-                    .fontSize(2.cssRem)
+                    .fontSize(2.5.cssRem)
                     .fontWeight(FontWeight.Bold)
-                    .margin(bottom = 1.cssRem),
+                    .textAlign(com.varabyte.kobweb.compose.css.TextAlign.Center)
+                    .color(theme.onBackground),
+        )
+
+        // 説明文
+        SpanText(
+            text = "動画URLまたは動画IDを入力すると、広告主のリストを整形して表示します。感謝メッセージの作成などにご利用ください。",
+            modifier =
+                Modifier
+                    .fontSize(1.1.cssRem)
+                    .textAlign(com.varabyte.kobweb.compose.css.TextAlign.Center)
+                    .maxWidth(600.px)
+                    .color(theme.onSurfaceVariant),
         )
 
         // 検索フォーム
-        VideoSearchForm(
-            initialValue = videoId,
-            onError = { error -> errorMessage = error },
-        )
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .maxWidth(600.px),
+        ) {
+            VideoSearchForm(
+                initialValue = videoId,
+                onError = { error -> errorMessage = error },
+            )
+        }
 
         // リフレッシュボタン（データが存在する場合のみ表示）
         if (videoId.isNotEmpty() && (videoInfo != null || nicoadHistoryList != null)) {
@@ -192,20 +217,15 @@ fun AdvertisersPage() {
                                 .fillMaxWidth()
                                 .maxWidth(600.px)
                                 .padding(0.5.cssRem)
-                                .backgroundColor(
-                                    org.jetbrains.compose.web.css
-                                        .Color("#e3f2fd"),
-                                ).borderRadius(4.px),
+                                .backgroundColor(theme.primaryContainer)
+                                .borderRadius(4.px),
                     ) {
                         SpanText(
                             "キャッシュ: ${if (info.fromCache) "利用中" else "更新済"} (${formatDateTime(info.cachedAt)})",
                             modifier =
                                 Modifier
                                     .fontSize(0.85.cssRem)
-                                    .color(
-                                        org.jetbrains.compose.web.css
-                                            .Color("#1565c0"),
-                                    ),
+                                    .color(theme.onPrimaryContainer),
                         )
                     }
                 }
@@ -225,19 +245,20 @@ fun AdvertisersPage() {
                         .fillMaxWidth()
                         .maxWidth(600.px)
                         .padding(1.cssRem)
-                        .backgroundColor(
-                            org.jetbrains.compose.web.css
-                                .Color("#ffebee"),
-                        ).borderRadius(4.px),
+                        .borderRadius(8.px)
+                        .backgroundColor(theme.errorContainer)
+                        .border(1.px, org.jetbrains.compose.web.css.LineStyle.Solid, theme.error),
             ) {
-                SpanText(
-                    error,
-                    modifier =
-                        Modifier.color(
-                            org.jetbrains.compose.web.css
-                                .Color("#c62828"),
-                        ),
-                )
+                Column(modifier = Modifier.gap(0.5.cssRem)) {
+                    SpanText(
+                        text = "エラー",
+                        modifier = Modifier.fontWeight(FontWeight.Bold).color(theme.onErrorContainer),
+                    )
+                    SpanText(
+                        text = error,
+                        modifier = Modifier.fontSize(0.9.cssRem).color(theme.onErrorContainer),
+                    )
+                }
             }
         }
 
@@ -249,13 +270,18 @@ fun AdvertisersPage() {
                         .width(100.percent)
                         .maxWidth(600.px)
                         .padding(1.cssRem)
-                        .backgroundColor(
-                            org.jetbrains.compose.web.css
-                                .Color("#f5f5f5"),
-                        ).borderRadius(8.px)
+                        .backgroundColor(theme.surfaceVariant)
+                        .borderRadius(8.px)
                         .gap(1.cssRem),
             ) {
-                SpanText("動画情報", modifier = Modifier.fontSize(1.5.cssRem).fontWeight(FontWeight.Bold))
+                SpanText(
+                    "動画情報",
+                    modifier =
+                        Modifier
+                            .fontSize(1.5.cssRem)
+                            .fontWeight(FontWeight.Bold)
+                            .color(theme.onSurface),
+                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth().gap(1.cssRem),
@@ -283,6 +309,7 @@ fun AdvertisersPage() {
                                 Modifier
                                     .fontSize(1.1.cssRem)
                                     .fontWeight(FontWeight.Bold)
+                                    .color(theme.onSurface)
                                     .lineHeight(1.4),
                         )
                         SpanText(
@@ -290,20 +317,14 @@ fun AdvertisersPage() {
                             modifier =
                                 Modifier
                                     .fontSize(0.9.cssRem)
-                                    .color(
-                                        org.jetbrains.compose.web.css
-                                            .Color("#666666"),
-                                    ),
+                                    .color(theme.onSurfaceVariant),
                         )
                         SpanText(
                             "投稿者ID: ${info.userId}",
                             modifier =
                                 Modifier
                                     .fontSize(0.9.cssRem)
-                                    .color(
-                                        org.jetbrains.compose.web.css
-                                            .Color("#666666"),
-                                    ),
+                                    .color(theme.onSurfaceVariant),
                         )
                     }
                 }
@@ -318,15 +339,20 @@ fun AdvertisersPage() {
                         .width(100.percent)
                         .maxWidth(600.px)
                         .padding(1.cssRem)
-                        .backgroundColor(
-                            org.jetbrains.compose.web.css
-                                .Color("#f5f5f5"),
-                        ).borderRadius(8.px)
+                        .backgroundColor(theme.surfaceVariant)
+                        .borderRadius(8.px)
                         .gap(1.cssRem),
             ) {
-                SpanText("広告主リスト", modifier = Modifier.fontSize(1.5.cssRem).fontWeight(FontWeight.Bold))
-                SpanText("広告件数: ${historyList.size}")
-                SpanText("総貢献度: ${historyList.sumOf { it.contribution }}pt")
+                SpanText(
+                    "広告主リスト",
+                    modifier =
+                        Modifier
+                            .fontSize(1.5.cssRem)
+                            .fontWeight(FontWeight.Bold)
+                            .color(theme.onSurface),
+                )
+                SpanText("広告件数: ${historyList.size}", modifier = Modifier.color(theme.onSurface))
+                SpanText("総貢献度: ${historyList.sumOf { it.contribution }}pt", modifier = Modifier.color(theme.onSurface))
 
                 // フォーマット設定
                 Column(
@@ -334,17 +360,21 @@ fun AdvertisersPage() {
                         Modifier
                             .fillMaxWidth()
                             .padding(1.cssRem)
-                            .backgroundColor(
-                                org.jetbrains.compose.web.css
-                                    .Color("#ffffff"),
-                            ).borderRadius(4.px)
+                            .backgroundColor(theme.surface)
+                            .borderRadius(4.px)
                             .gap(1.cssRem),
                 ) {
-                    SpanText("表示設定", modifier = Modifier.fontWeight(FontWeight.Bold))
+                    SpanText(
+                        "表示設定",
+                        modifier =
+                            Modifier
+                                .fontWeight(FontWeight.Bold)
+                                .color(theme.onSurface),
+                    )
 
                     // 敬称設定
                     Column(modifier = Modifier.gap(0.5.cssRem)) {
-                        SpanText("敬称:")
+                        SpanText("敬称:", modifier = Modifier.color(theme.onSurface))
                         Select(
                             attrs = {
                                 style {
@@ -378,7 +408,7 @@ fun AdvertisersPage() {
 
                     // リスト表示形式
                     Column(modifier = Modifier.gap(0.5.cssRem)) {
-                        SpanText("リスト表示形式:")
+                        SpanText("リスト表示形式:", modifier = Modifier.color(theme.onSurface))
                         Select(
                             attrs = {
                                 style {
@@ -404,7 +434,7 @@ fun AdvertisersPage() {
 
                     // 1行の文字数
                     Column(modifier = Modifier.gap(0.5.cssRem)) {
-                        SpanText("1行の文字数:")
+                        SpanText("1行の文字数:", modifier = Modifier.color(theme.onSurface))
                         TextInput(
                             text = charsPerLine,
                             onTextChange = { charsPerLine = it },
@@ -422,7 +452,8 @@ fun AdvertisersPage() {
                 Pre(
                     attrs = {
                         style {
-                            property("background-color", "#ffffff")
+                            property("background-color", theme.surface.toString())
+                            property("color", theme.onSurface.toString())
                             property("padding", "1rem")
                             property("border-radius", "4px")
                             property("overflow-x", "auto")
