@@ -77,7 +77,7 @@ fun ColorModeToggle(modifier: Modifier = Modifier) {
     ) {
         // ライトモードボタン
         ColorModeButton(
-            icon = { FaSun(modifier = Modifier.color(theme.onSurface).fontSize(1.25.cssRem)) },
+            icon = { FaSun() },
             isSelected = preference == ColorModePreference.LIGHT,
             onClick = {
                 preference = ColorModePreference.LIGHT
@@ -88,7 +88,7 @@ fun ColorModeToggle(modifier: Modifier = Modifier) {
 
         // ダークモードボタン
         ColorModeButton(
-            icon = { FaMoon(modifier = Modifier.color(theme.onSurface).fontSize(1.25.cssRem)) },
+            icon = { FaMoon() },
             isSelected = preference == ColorModePreference.DARK,
             onClick = {
                 preference = ColorModePreference.DARK
@@ -99,7 +99,7 @@ fun ColorModeToggle(modifier: Modifier = Modifier) {
 
         // システム設定ボタン
         ColorModeButton(
-            icon = { FaDesktop(modifier = Modifier.color(theme.onSurface).fontSize(1.25.cssRem)) },
+            icon = { FaDesktop() },
             isSelected = preference == ColorModePreference.SYSTEM,
             onClick = {
                 preference = ColorModePreference.SYSTEM
@@ -125,6 +125,8 @@ private fun ColorModeButton(
                 .backgroundColor(if (isSelected) theme.primaryContainer else theme.surface)
                 .cursor(Cursor.Pointer)
                 .userSelect(UserSelect.None)
+                .fontSize(1.25.cssRem)
+                .color(theme.onSurface)
                 .onClick { onClick() },
     ) {
         icon()
