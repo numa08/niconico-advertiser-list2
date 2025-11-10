@@ -14,6 +14,7 @@ import com.varabyte.kobweb.silk.components.forms.TextInput
 import com.varabyte.kobweb.silk.components.text.SpanText
 import net.numa08.niconico_advertiser_list2.theme.Theme
 import net.numa08.niconico_advertiser_list2.theme.current
+import net.numa08.niconico_advertiser_list2.util.GoogleAnalytics
 import net.numa08.niconico_advertiser_list2.util.VideoIdExtractor
 import org.jetbrains.compose.web.css.cssRem
 import org.jetbrains.compose.web.css.px
@@ -37,6 +38,8 @@ fun VideoSearchForm(
         val videoId = VideoIdExtractor.extractVideoId(videoInput)
         if (videoId != null) {
             onError(null)
+            // 動画検索イベントを送信
+            GoogleAnalytics.trackVideoSearch()
             ctx.router.navigateTo(
                 "/advertisers/$videoId",
                 updateHistoryMode = UpdateHistoryMode.REPLACE,

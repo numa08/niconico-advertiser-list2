@@ -13,6 +13,7 @@ import com.varabyte.kobweb.silk.components.forms.TextInput
 import com.varabyte.kobweb.silk.components.text.SpanText
 import net.numa08.niconico_advertiser_list2.theme.Theme
 import net.numa08.niconico_advertiser_list2.theme.current
+import net.numa08.niconico_advertiser_list2.util.GoogleAnalytics
 import net.numa08.niconico_advertiser_list2.util.UserIdExtractor
 import net.numa08.niconico_advertiser_list2.util.UserPreferencesService
 import org.jetbrains.compose.web.css.*
@@ -153,6 +154,8 @@ fun UserIdSettingDialog(
                                 val userId = UserIdExtractor.extractUserId(userIdInput)
                                 if (userId != null) {
                                     UserPreferencesService.setUserId(userId)
+                                    // ユーザーID設定イベントを送信
+                                    GoogleAnalytics.trackUserIdSet()
                                     onSave(userId)
                                     onClose()
                                 } else {
@@ -176,6 +179,8 @@ fun UserIdSettingDialog(
                         Button(
                             onClick = {
                                 UserPreferencesService.clearUserId()
+                                // ユーザーID解除イベントを送信
+                                GoogleAnalytics.trackUserIdClear()
                                 onClear()
                                 onClose()
                             },

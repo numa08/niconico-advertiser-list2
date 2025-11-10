@@ -58,5 +58,21 @@ fun Footer(modifier: Modifier = Modifier) {
         ) {
             Text("@numa_radio")
         }
+
+        // GitHubリポジトリへのリンク
+        A(
+            href = "https://github.com/numa08/niconico-advertiser-list2",
+            attrs =
+                Modifier
+                    .fontSize(0.9.cssRem)
+                    .color(theme.primary)
+                    .textDecorationLine(TextDecorationLine.None)
+                    .toAttrs {
+                        target(ATarget.Blank)
+                        attr("rel", "noopener noreferrer")
+                    },
+        ) {
+            Text("GitHub")
+        }
     }
 }

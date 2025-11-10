@@ -1,4 +1,7 @@
 import com.varabyte.kobweb.gradle.application.util.configAsKobwebApplication
+import kotlinx.html.meta
+import kotlinx.html.script
+import kotlinx.html.unsafe
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -16,7 +19,87 @@ version = "1.0-SNAPSHOT"
 kobweb {
     app {
         index {
-            description.set("Powered by Kobweb")
+            description.set("ニコニコ動画の広告履歴から広告主リストを取得し、整形して表示するWebアプリケーション。動画投稿者が広告をくださった方々への感謝を表明する際に便利です。")
+            lang.set("ja")
+
+            head.add {
+                // OGP Meta Tags
+                meta {
+                    attributes["property"] = "og:type"
+                    content = "website"
+                }
+                meta {
+                    attributes["property"] = "og:url"
+                    content = "https://niconico-advertisers.numa08.dev/"
+                }
+                meta {
+                    attributes["property"] = "og:title"
+                    content = "ニコニコ動画 広告主リスト取得"
+                }
+                meta {
+                    attributes["property"] = "og:description"
+                    content = "ニコニコ動画の広告履歴から広告主リストを取得し、整形して表示するWebアプリケーション。動画投稿者が広告をくださった方々への感謝を表明する際に便利です。"
+                }
+                meta {
+                    attributes["property"] = "og:image"
+                    content = "https://niconico-advertisers.numa08.dev/ogp.png"
+                }
+                meta {
+                    attributes["property"] = "og:locale"
+                    content = "ja_JP"
+                }
+                meta {
+                    attributes["property"] = "og:site_name"
+                    content = "ニコニコ動画 広告主リスト取得"
+                }
+
+                // Twitter Card
+                meta {
+                    attributes["property"] = "twitter:card"
+                    content = "summary_large_image"
+                }
+                meta {
+                    attributes["property"] = "twitter:url"
+                    content = "https://niconico-advertisers.numa08.dev/"
+                }
+                meta {
+                    attributes["property"] = "twitter:title"
+                    content = "ニコニコ動画 広告主リスト取得"
+                }
+                meta {
+                    attributes["property"] = "twitter:description"
+                    content = "ニコニコ動画の広告履歴から広告主リストを取得し、整形して表示するWebアプリケーション。動画投稿者が広告をくださった方々への感謝を表明する際に便利です。"
+                }
+                meta {
+                    attributes["property"] = "twitter:image"
+                    content = "https://niconico-advertisers.numa08.dev/ogp.png"
+                }
+                meta {
+                    attributes["property"] = "twitter:creator"
+                    content = "@numa_radio"
+                }
+
+                // Google Analytics 4
+                val ga4MeasurementId = System.getenv("GA4_MEASUREMENT_ID")
+                if (!ga4MeasurementId.isNullOrEmpty()) {
+                    script {
+                        async = true
+                        src = "https://www.googletagmanager.com/gtag/js?id=$ga4MeasurementId"
+                    }
+                    script {
+                        unsafe {
+                            +"""
+                            window.dataLayer = window.dataLayer || [];
+                            function gtag(){dataLayer.push(arguments);}
+                            gtag('js', new Date());
+                            gtag('config', '$ga4MeasurementId', {
+                                'send_page_view': false
+                            });
+                            """.trimIndent()
+                        }
+                    }
+                }
+            }
         }
     }
 }

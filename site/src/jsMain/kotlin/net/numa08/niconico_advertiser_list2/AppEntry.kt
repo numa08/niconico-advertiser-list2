@@ -23,9 +23,11 @@ import com.varabyte.kobweb.silk.theme.colors.ColorMode
 import com.varabyte.kobweb.silk.theme.colors.loadFromLocalStorage
 import com.varabyte.kobweb.silk.theme.colors.saveToLocalStorage
 import com.varabyte.kobweb.silk.theme.colors.systemPreference
+import kotlinx.browser.window
 import net.numa08.niconico_advertiser_list2.components.Footer
 import net.numa08.niconico_advertiser_list2.components.Header
 import net.numa08.niconico_advertiser_list2.theme.AppTheme
+import net.numa08.niconico_advertiser_list2.util.GoogleAnalytics
 import org.jetbrains.compose.web.css.vh
 
 private const val COLOR_MODE_KEY = "niconico_advertiser_list2:colorMode"
@@ -50,6 +52,14 @@ fun AppEntry(content: @Composable () -> Unit) {
         val colorMode = ColorMode.current
         LaunchedEffect(colorMode) {
             colorMode.saveToLocalStorage(COLOR_MODE_KEY)
+        }
+
+        // ページビュー追跡
+        LaunchedEffect(Unit) {
+            GoogleAnalytics.trackPageView(
+                pagePath = window.location.pathname,
+                pageTitle = window.document.title,
+            )
         }
 
         AppTheme {
