@@ -6,6 +6,7 @@ FROM eclipse-temurin:21-jdk AS build
 # Kobwebアプリのルートディレクトリ（通常は"site"）
 ARG KOBWEB_APP_ROOT="site"
 ARG KOBWEB_CLI_VERSION=0.9.21
+ARG GA4_MEASUREMENT_ID
 
 WORKDIR /project
 
@@ -45,7 +46,8 @@ COPY ${KOBWEB_APP_ROOT}/src/ ./${KOBWEB_APP_ROOT}/src/
 
 # 5. Gradleビルド実行（ブラウザテストをスキップ）
 WORKDIR /project/${KOBWEB_APP_ROOT}
-RUN ../gradlew -Dorg.gradle.project.file=gradle-ci.properties -Dfile.encoding=UTF-8 build -x jsBrowserTest && \
+RUN export GA4_MEASUREMENT_ID="${GA4_MEASUREMENT_ID}" && \
+    ../gradlew -Dorg.gradle.project.file=gradle-ci.properties -Dfile.encoding=UTF-8 build -x jsBrowserTest && \
     kobweb export --notty
 
 # =======================================
