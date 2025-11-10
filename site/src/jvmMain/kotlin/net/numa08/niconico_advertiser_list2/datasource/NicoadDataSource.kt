@@ -182,4 +182,50 @@ class NicoadDataSource(
         // 見つからない場合は空文字列を返す
         return ""
     }
+
+    /**
+     * ユーザーの投稿動画一覧をAtom feedで取得
+     *
+     * @param userId ユーザーID
+     * @param page ページ番号（デフォルト: 1）
+     * @return Atom feed XML文字列
+     * @throws VideoNotFoundException ユーザーが存在しない場合
+     */
+    suspend fun fetchUserVideosFeed(
+        userId: String,
+        page: Int = 1,
+    ): String {
+        val url = "https://www.nicovideo.jp/user/$userId/video?rss=atom&page=$page"
+
+        return runCatching {
+            val response =
+                httpClient.get(url) {
+                    headers {
+                        append(
+                            HttpHeaders.Accept,
+                            "application/atom+xml,application/xml;q=0.9,*/*;q=0.8",
+                        )
+                        append(
+                            HttpHeaders.AcceptLanguage,
+                            "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
+                        )
+                        append(
+                            HttpHeaders.UserAgent,
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        )
+                    }
+                }
+
+            when (response.status.value) {
+                404 -> throw VideoNotFoundException("User not found: $userId")
+                in 200..299 -> response.bodyAsText()
+                else -> throw Exception("Failed to fetch user videos: ${response.status}")
+            }
+        }.getOrElse { error ->
+            when (error) {
+                is VideoNotFoundException -> throw error
+                else -> throw Exception("Failed to fetch user videos feed: ${error.message}", error)
+            }
+        }
+    }
 }
