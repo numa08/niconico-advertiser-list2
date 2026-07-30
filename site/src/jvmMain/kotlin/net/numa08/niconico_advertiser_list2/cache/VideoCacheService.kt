@@ -11,6 +11,7 @@ import net.numa08.niconico_advertiser_list2.models.VideoInfo
 import net.numa08.niconico_advertiser_list2.util.AtomFeedParser
 import net.numa08.niconico_advertiser_list2.util.RequestSemaphore
 import java.time.Instant
+import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
 
 /**
@@ -167,12 +168,25 @@ object VideoCacheService {
             }
 
     /**
+     * Caffeineはローダーが投げたchecked例外（VideoNotFoundException等）を
+     * CompletionExceptionにラップするため、呼び出し元が例外型で分岐できるように
+     * 元の例外へ戻してResultに包む
+     */
+    private inline fun <T> cacheCatching(block: () -> T): Result<T> =
+        runCatching(block).fold(
+            onSuccess = { Result.success(it) },
+            onFailure = { error ->
+                Result.failure((error as? CompletionException)?.cause ?: error)
+            },
+        )
+
+    /**
      * 動画情報を取得
      * キャッシュにあればキャッシュから、なければ自動的にロードして返す
      *
      * @return Result<CachedVideoInfo> 成功時はキャッシュされた動画情報、失敗時はエラー
      */
-    fun getVideoInfo(videoId: String): Result<CachedVideoInfo> = runCatching { videoInfoCache.get(videoId) }
+    fun getVideoInfo(videoId: String): Result<CachedVideoInfo> = cacheCatching { videoInfoCache.get(videoId) }
 
     /**
      * 広告履歴を取得
@@ -180,7 +194,7 @@ object VideoCacheService {
      *
      * @return Result<CachedNicoadHistory> 成功時はキャッシュされた広告履歴、失敗時はエラー
      */
-    fun getNicoadHistory(videoId: String): Result<CachedNicoadHistory> = runCatching { nicoadHistoryCache.get(videoId) }
+    fun getNicoadHistory(videoId: String): Result<CachedNicoadHistory> = cacheCatching { nicoadHistoryCache.get(videoId) }
 
     /**
      * 動画情報を強制更新
@@ -189,7 +203,7 @@ object VideoCacheService {
      * @return Result<CachedVideoInfo> 成功時はキャッシュされた動画情報、失敗時はエラー
      */
     fun refreshVideoInfo(videoId: String): Result<CachedVideoInfo> =
-        runCatching {
+        cacheCatching {
             videoInfoCache.invalidate(videoId)
             videoInfoCache.get(videoId)
         }
@@ -201,7 +215,7 @@ object VideoCacheService {
      * @return Result<CachedNicoadHistory> 成功時はキャッシュされた広告履歴、失敗時はエラー
      */
     fun refreshNicoadHistory(videoId: String): Result<CachedNicoadHistory> =
-        runCatching {
+        cacheCatching {
             nicoadHistoryCache.invalidate(videoId)
             nicoadHistoryCache.get(videoId)
         }
@@ -225,7 +239,7 @@ object VideoCacheService {
     fun getUserVideos(
         userId: String,
         page: Int,
-    ): Result<CachedUserVideos> = runCatching { userVideosCache.get(UserVideosCacheKey(userId, page)) }
+    ): Result<CachedUserVideos> = cacheCatching { userVideosCache.get(UserVideosCacheKey(userId, page)) }
 
     /**
      * ユーザー動画リストを強制更新
@@ -239,7 +253,7 @@ object VideoCacheService {
         userId: String,
         page: Int,
     ): Result<CachedUserVideos> =
-        runCatching {
+        cacheCatching {
             val key = UserVideosCacheKey(userId, page)
             userVideosCache.invalidate(key)
             userVideosCache.get(key)

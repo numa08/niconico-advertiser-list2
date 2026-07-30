@@ -10,16 +10,12 @@ import io.ktor.http.HttpHeaders
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import net.numa08.niconico_advertiser_list2.datasource.response.NicoadHistoryResponse
 import net.numa08.niconico_advertiser_list2.datasource.response.NicoadResponse
 import net.numa08.niconico_advertiser_list2.datasource.response.NiconicoVideoInformationResponse
-import kotlin.math.ceil
 import kotlin.random.Random
 
 /**
@@ -50,56 +46,66 @@ class NicoadDataSource(
     override val coroutineContext = Dispatchers.IO + job
 
     companion object {
+        private const val HISTORY_PAGE_LIMIT = 100
+        private const val MIN_PAGE_DELAY_MS = 10
+        private const val MAX_PAGE_DELAY_MS = 101
+
         private fun nicoadHistoryURL(
             videoId: String,
-            offset: Int,
+            offsetId: Int?,
             limit: Int,
-        ): String = "https://api.nicoad.nicovideo.jp/v1/contents/video/$videoId/histories?offset=$offset&limit=$limit"
+        ): String =
+            buildString {
+                append("https://api.koken.nicovideo.jp/v1/userperspective/contents/nicoad/video/")
+                append(videoId)
+                append("/histories?limit=")
+                append(limit)
+                if (offsetId != null) {
+                    append("&offsetId=")
+                    append(offsetId)
+                }
+            }
 
         private val json = Json { ignoreUnknownKeys = true }
     }
 
-    /** ページネーションされたニコニコ動画広告履歴データを取得し、一つのリストでレスポンスする */
+    /**
+     * ニコニコ動画広告履歴データをすべて取得し、一つのリストでレスポンスする
+     *
+     * APIはoffsetIdによるカーソル方式のため、前ページ最後の履歴IDを渡しながら
+     * nextCountが0になるまで順次取得する
+     */
     suspend fun getNicoadHistories(videoId: String): Result<List<NicoadHistoryResponse>> =
-        coroutineScope {
-            val limit = 100
-            val apiUrl = nicoadHistoryURL(videoId, 0, limit)
-            // 1度取得して、ページ数を取得する
-            val response =
-                runCatching {
-                    val httpResponse = httpClient.get(apiUrl)
-                    // 404チェック
-                    if (httpResponse.status.value == 404) {
-                        throw VideoNotFoundException("Video not found: $videoId")
-                    }
-                    httpResponse.body<NicoadResponse>()
+        runCatching {
+            val allHistories = mutableListOf<NicoadHistoryResponse>()
+            var offsetId: Int? = null
+            while (true) {
+                val httpResponse = httpClient.get(nicoadHistoryURL(videoId, offsetId, HISTORY_PAGE_LIMIT))
+                if (httpResponse.status.value == 404) {
+                    throw VideoNotFoundException("Video not found: $videoId")
                 }
-            if (response.isFailure) {
-                return@coroutineScope Result.failure(response.exceptionOrNull()!!)
-            }
-            val total = response.getOrThrow().data.count
-            val totalPage = ceil(total.toDouble() / limit).toInt()
-            // ページ数分リクエストを送る
-            val requests =
-                (0 until totalPage).map { index ->
-                    val offset = index * limit
-                    val pageUrl = nicoadHistoryURL(videoId, offset, limit)
-                    // ランダムに遅延させる
-                    val randomDelay = Random.nextInt(10, 101)
-                    async {
-                        delay(randomDelay.toLong())
-                        runCatching { httpClient.get(pageUrl).body<NicoadResponse>() }
+                val page = httpResponse.body<NicoadResponse>()
+                val items = page.data.histories
+                allHistories +=
+                    items.map { item ->
+                        NicoadHistoryResponse(
+                            advertiserName = item.supporterName,
+                            nicoadId = item.id,
+                            adPoint = item.point,
+                            contribution = item.contribution,
+                            startedAt = item.startedAt,
+                            endedAt = item.endedAt,
+                            userId = item.supporterId,
+                        )
                     }
+                if (page.data.nextCount <= 0 || items.isEmpty()) {
+                    break
                 }
-            val responses = requests.awaitAll()
-            // すべてのデータを連結する
-            val allData = responses.mapNotNull { it.getOrNull()?.data?.histories }.flatten()
-            val errors = responses.mapNotNull { it.exceptionOrNull() }
-            // エラーがあったらエラーを返す
-            if (errors.isNotEmpty()) {
-                return@coroutineScope Result.failure(errors.first())
+                offsetId = items.last().id
+                // 連続アクセスによる負荷を避けるためランダムに遅延させる
+                delay(Random.nextInt(MIN_PAGE_DELAY_MS, MAX_PAGE_DELAY_MS).toLong())
             }
-            Result.success(allData)
+            allHistories.toList()
         }
 
     /** 動画ページにアクセスし、htmlのヘッダー要素から動画情報を取得する */
