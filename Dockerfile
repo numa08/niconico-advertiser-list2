@@ -1,11 +1,16 @@
 # =======================================
 # Stage 1: ビルド環境
 # =======================================
-FROM eclipse-temurin:21-jdk AS build
+# ディストリビューションを未固定にするとPlaywrightが対応しないOSに更新されて
+# エクスポートが失敗するため、ランタイムと同じjammy(22.04)に固定する
+FROM eclipse-temurin:21-jdk-jammy AS build
 
 # Kobwebアプリのルートディレクトリ（通常は"site"）
 ARG KOBWEB_APP_ROOT="site"
 ARG KOBWEB_CLI_VERSION=0.9.21
+# kobweb exportが内部で使うplaywright-javaのバージョンと一致させる必要がある
+# （Kobwebプラグイン更新時は要追従。不一致だとChromiumのリビジョンが合わず起動できない）
+ARG PLAYWRIGHT_VERSION=1.55.0
 ARG GA4_MEASUREMENT_ID
 
 WORKDIR /project
@@ -26,7 +31,7 @@ RUN wget https://github.com/varabyte/kobweb-cli/releases/download/v${KOBWEB_CLI_
     rm kobweb-${KOBWEB_CLI_VERSION}.zip
 
 # Playwrightブラウザのインストール（エクスポートに必要）
-RUN npx playwright install --with-deps chromium
+RUN npx -y playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium
 
 # 1. Gradle関連ファイルをコピー（依存関係キャッシュ用）
 COPY gradle.properties settings.gradle.kts gradlew gradlew.bat gradle-ci.properties ./
@@ -46,9 +51,15 @@ COPY ${KOBWEB_APP_ROOT}/src/ ./${KOBWEB_APP_ROOT}/src/
 
 # 5. Gradleビルド実行（ブラウザテストをスキップ）
 WORKDIR /project/${KOBWEB_APP_ROOT}
+# kobweb export --nottyは失敗しても終了コード0を返すことがあるため、
+# 成果物の存在を検証してサイレント失敗を防ぐ
 RUN export GA4_MEASUREMENT_ID="${GA4_MEASUREMENT_ID}" && \
     ../gradlew -Dorg.gradle.project.file=gradle-ci.properties -Dfile.encoding=UTF-8 build -x jsBrowserTest && \
-    kobweb export --notty
+    kobweb export --notty && \
+    if [ -z "$(ls -A .kobweb/site)" ]; then \
+        echo "ERROR: kobweb export failed (.kobweb/site is empty)" >&2; \
+        exit 1; \
+    fi
 
 # =======================================
 # Stage 2: 本番環境イメージ
