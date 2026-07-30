@@ -18,7 +18,7 @@
 | ユーザー動画Atomフィード | ❌ **廃止されている** | 代替のnvapiを検証済み（下記） |
 | nvapi（`nvapi.nicovideo.jp/v3/users/{id}/videos`） | ✅ | `X-Frontend-Id: 6` + User-Agent 必須 |
 | レート制限・IPブロック | ✅ 遭遇せず | 60ms間隔で80連続リクエストしても正常応答 |
-| `kobweb export --layout static` | ⏳ 検証中 | ビルド実行中。完了後にこの表と本文を更新する |
+| `kobweb export --layout static` | ✅ | 成果物生成を確認。ただし動的ルートはSPAフォールバック必須（本文参照） |
 
 ## 詳細
 
@@ -102,18 +102,42 @@ Workers組み込みのHTMLRewriter（ストリーミングパーサ）で以下�
 - 検証はローカルworkerd（`wrangler dev`）で実施済み。CPU 10ms制限内で
   49KBのwatchページを処理できた（ストリーミングのためDOM構築コストなし）
 
-### 6. `kobweb export --layout static`（検証中）
+### 6. `kobweb export --layout static` は成立する（SPAフォールバック必須）
 
-静的レイアウトでのエクスポートを実行中（Kotlin/JSプロダクションビルドに
-時間がかかる）。完了後、`site/.kobweb/site/` に `index.html` /
-`/advertisers` 用ページ / 404ページ / JSバンドルが生成されるかを確認し、
-本セクションを結果で更新する。
+静的レイアウトでのエクスポートに成功（ビルド約9分）。`site/.kobweb/site/` に
+以下が生成された（合計約2.5MB）:
 
-成功した場合のフェーズ3方針:
+- `index.html`（`/` のプリレンダリング）
+- `404.html`
+- `niconico_advertiser_list2.js`（+ ソースマップ）
+- `favicon.ico` ほか静的リソース
 
-- この成果物をそのままWorkers Static Assetsのディレクトリとして配信する
-- `/advertisers` へのアクセスに対応するHTMLを返すルーティング
-  （Static Assetsの `html_handling` デフォルト挙動で対応可能）を確認する
+**重要**: 広告主リストページは `@Page("/advertisers/{videoId}")` の**動的ルート**
+のため、静的エクスポートではHTMLがプリレンダリングされない（スナップショット
+対象は `/` と `/404` のみ）。現行はKobweb JVMサーバーが動的ルートへシェルHTMLを
+返しているが、静的配信では代わりに **Workers Static Assetsの
+`not_found_handling: "single-page-application"`** を設定し、未知パスに
+`index.html` を返してクライアント側のKobwebルーターに処理させる。
+
+フェーズ3の設定方針（`wrangler.jsonc`）:
+
+```jsonc
+{
+  "assets": {
+    "directory": "../site/.kobweb/site",
+    "not_found_handling": "single-page-application"
+  }
+}
+```
+
+付随する仕様変化: 存在しないパスへの直アクセスはHTTP 200 + クライアント側
+NotFoundページ表示となる（現行の404ステータス応答から変わる）。SEO上の懸念が
+あれば `run_worker_first` でWorker側ルーティングを挟む余地はあるが、本アプリの
+性質上は許容範囲と判断してよい。
+
+補足: エクスポートにはPlaywright管理のChromium headless shellが必要
+（今回の環境では playwright build v1187 が自動ダウンロードされた）。CI設計時は
+Dockerfile同様にブラウザ取得手段を確保すること。
 
 ## フェーズ0の残タスク
 

@@ -56,9 +56,14 @@ Koyeb（Docker + JVM 常駐サーバー）から Cloudflare への移行に向�
 
 ### フェーズ0: 事前検証（スパイク）
 
-- [ ] Workers 上から3つの外部エンドポイント（watchページHTML / koken広告API / Atomフィード）へ実際にアクセスし、ブロック・レート制限・必要ヘッダー（User-Agent等）を確認する
-- [ ] `kobweb export --layout static` で静的エクスポートが成立するか（`/`, `/advertisers`, 404ページ）を確認する
-- [ ] 広告件数の多い実動画でページ数の実態を調べ、サブリクエスト上限の対策（Paid化 or クライアント側継続取得）を決定する
+検証結果の詳細は [PHASE0_SPIKE_RESULTS.md](./PHASE0_SPIKE_RESULTS.md) を参照。
+
+- [x] 3つの外部エンドポイントへのアクセス検証（サンドボックス + ローカルworkerd）
+      → watchページ・koken APIはOK（**User-Agent必須**）。**Atomフィードは廃止されており nvapi へ移行が必要**
+- [x] `kobweb export --layout static` の検証 → 成立。ただし動的ルート `/advertisers/{videoId}` はSPAフォールバック（`not_found_handling: "single-page-application"`）で対応する
+- [x] 広告件数の多い実動画でのページ数実態調査 → sm9で8,000件超を確認。無料プランのサブリクエスト上限50では不足
+- [ ] `workers-spike/` をCloudflareアカウントへデプロイし、実エッジIPからの疎通を最終確認する
+- [ ] サブリクエスト上限の対策（案a: Workers Paid化 / 案b: 継続カーソル方式）を決定する
 
 ### フェーズ1: プロジェクト基盤
 
@@ -70,7 +75,7 @@ Koyeb（Docker + JVM 常駐サーバー）から Cloudflare への移行に向�
 
 - [ ] `GET /api/video/info`: watchページ取得 + `HTMLRewriter` によるメタ情報抽出（タイトル・サムネイル・userId、JSON-LDフォールバック含む）
 - [ ] `GET /api/video/nicoad-history`: koken API のカーソルページング全件取得、ページ間ランダム遅延（10〜100ms）の維持
-- [ ] `GET /api/user/videos`: Atomフィード取得 + XMLパース、`hasNext` 判定、userId/page のバリデーション（数値のみ・page>=1）
+- [ ] `GET /api/user/videos`: **nvapi**（`nvapi.nicovideo.jp/v3/users/{id}/videos`、`X-Frontend-Id: 6` 必須）からの取得に切り替える（Atomフィードは廃止済み）。`totalCount` から `hasNext` を算出、userId/page のバリデーション（数値のみ・page>=1）
 - [ ] KVキャッシュ層: TTL（動画情報・広告履歴1時間、ユーザー動画30分）、`cachedAt`/`fromCache` の付与、`refresh=true` での強制再取得
 - [ ] エラー互換: 400（パラメータ不正）/ 404（動画・ユーザー不存在、`{"error": ...}` ボディ）/ 500 を現行と同じ形式で返す
 
@@ -78,7 +83,7 @@ Koyeb（Docker + JVM 常駐サーバー）から Cloudflare への移行に向�
 
 - [ ] `kobweb export --layout static` の成果物を Workers Static Assets として配信する
 - [ ] GA4 測定IDの注入をビルドパイプラインに組み込む
-- [ ] SPAルーティング（`/advertisers` 直アクセス、404ページ）の動作を確認する
+- [ ] SPAルーティングの動作を確認する（動的ルート `/advertisers/{videoId}` への直アクセスは `not_found_handling: "single-page-application"` で `index.html` を返しクライアント側ルーターに処理させる）
 
 ### フェーズ4: テスト
 
