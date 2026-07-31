@@ -23,7 +23,6 @@ yarn.lock
 
 # その他
 .claude/
-.serena/
 *.log
 *.swp
 .DS_Store

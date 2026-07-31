@@ -165,4 +165,4 @@ nvapiのすべてが実エッジ環境で動作する。技術的なブロッカ
 - [x] （推奨）Koyeb本番の `/api/user/videos` が現在も動作しているか確認する
       → 2026-07-31確認: **機能していない**。動画19件保有のuser 4に対し200 + 0件を返す
       （Atomフィード廃止の影響。フェーズ4のコントラクトテストで実証。nvapi移行で修復される）
-- [ ] 検証完了後、スパイクWorkerを削除する（`cd workers-spike && npx wrangler delete`）
+- [x] 検証完了後、スパイクWorkerを削除する → ✅ 2026-07-31、Cloudflare上のWorker（`niconico-advertiser-list-spike`）と `workers-spike/` ディレクトリを削除済み
