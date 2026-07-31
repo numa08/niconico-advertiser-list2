@@ -1,8 +1,8 @@
 # workers/ — Cloudflare Workers 移行版バックエンド
 
-Koyeb（Kobweb JVMサーバー）からの移行先。API（`/api/*`）を TypeScript + Hono で再実装し、
-Kobwebフロントエンドの静的エクスポート成果物を Workers Static Assets として配信する。
-全体計画は [docs/CLOUDFLARE_MIGRATION.md](../docs/CLOUDFLARE_MIGRATION.md) を参照。
+API（`/api/*`）を TypeScript + Hono で実装し、Reactフロントエンド（`../frontend`）の
+ビルド成果物を Workers Static Assets として配信する。
+移行の経緯は [docs/CLOUDFLARE_MIGRATION.md](../docs/CLOUDFLARE_MIGRATION.md) を参照。
 
 ## 技術スタック
 

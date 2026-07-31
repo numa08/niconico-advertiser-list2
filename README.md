@@ -16,7 +16,8 @@
 ## 主な機能
 
 - **動画情報の取得**: 動画ID/URLから動画情報を表示
-- **広告履歴の取得**: ニコニ広告履歴から広告主リストを取得
+- **広告履歴の取得**: ニコニ広告履歴から広告主リストを取得（継続カーソル方式で大量広告にも対応）
+- **ユーザー投稿動画一覧**: ユーザーIDを設定すると自分の投稿動画から選択可能
 - **柔軟なフォーマット設定**:
   - 敬称選択（様、さん、氏、ちゃん、くん、カスタム）
   - 表示順序（すべて表示、逆順、重複除外）
@@ -26,269 +27,163 @@
 
 ## 技術スタック
 
-### フロントエンド
+### バックエンド（`workers/`）
 
-- **[Kobweb](https://github.com/varabyte/kobweb) 0.23.3** - Kotlin Multiplatform Web Framework
-- **[Compose for Web](https://github.com/JetBrains/compose-multiplatform)** - 宣言的UI
-- **[Silk](https://github.com/varabyte/kobweb)** - Kobweb用UIコンポーネント
-- **Kotlinx Serialization** - JSON シリアライゼーション
+- **[Cloudflare Workers](https://workers.cloudflare.com/)** - エッジサーバーレスランタイム
+- **[Hono](https://hono.dev/)** - ルーター
+- **TypeScript** - 実装言語
+- **Workers KV** - キャッシュ（動画情報・広告履歴: TTL 1時間、ユーザー動画: 30分）
+- **HTMLRewriter** - watchページのストリーミングHTMLパース
 
-### バックエンド
+### フロントエンド（`frontend/`）
 
-- **Kotlin/JVM** - サーバーサイドロジック
-- **[Kobweb API](https://github.com/varabyte/kobweb)** - サーバーサイドAPIフレームワーク
-- **[Ktor Client](https://ktor.io/)** - HTTP クライアント（CIO エンジン）
-- **[Ksoup](https://github.com/fleeksoft/ksoup)** - HTML パーサー
+- **[React](https://react.dev/)** + **[React Router](https://reactrouter.com/)** - UI
+- **[Vite](https://vite.dev/)** - ビルドツール
+- **TypeScript** - 実装言語
+- ビルド成果物は Workers Static Assets として同一Workerから配信（SPAフォールバック有効）
 
 ### 開発ツール
 
-- **Gradle 8.14** - ビルドシステム
-- **Kotlin 2.1.20** - プログラミング言語
-- **ktlint** - コードフォーマッター
-- **detekt** - 静的解析ツール
+- **pnpm workspace** - mono-repo管理（`workers/` + `frontend/`）
+- **Vitest** - テスト（workersは `@cloudflare/vitest-pool-workers` でworkerd上実行）
+- **Biome** - リンター/フォーマッター
+- **Wrangler** - Cloudflare開発・デプロイCLI
 
 ### デプロイ
 
-- **Docker** - コンテナ化
-- **Koyeb** - PaaS（本番デプロイ先）
+- **Cloudflare Workers Builds** - gitリポジトリ連携による自動ビルド・デプロイ
 
 ## アーキテクチャ
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                   フロントエンド                      │
-│  (Compose for Web / Kotlin/JS)                      │
-│  - pages/Index.kt: メインページ                       │
-│  - VideoIdExtractor: URL/ID抽出ロジック               │
+│              フロントエンド (frontend/)               │
+│  React + React Router (Vite ビルド)                  │
+│  - 動画検索 / 広告主リスト表示 / フォーマット設定       │
+│  - Workers Static Assets として配信                  │
 └────────────────┬────────────────────────────────────┘
-                 │ HTTP (Fetch API)
+                 │ HTTP (fetch, 相対パス /api/*)
                  ↓
 ┌─────────────────────────────────────────────────────┐
-│              バックエンドAPI (Kobweb)                 │
-│  (Kotlin/JVM)                                       │
-│  - api/VideoInfo.kt: 動画情報API                     │
-│  - api/VideoAdvertisers.kt: 広告履歴API              │
-│  - util/RequestSemaphore.kt: 同時実行制限             │
+│           バックエンドAPI (workers/)                  │
+│  Cloudflare Workers + Hono (TypeScript)             │
+│  - /api/video/info: 動画情報取得                     │
+│  - /api/video/nicoad-history: 広告履歴取得           │
+│  - /api/user/videos: ユーザー投稿動画取得             │
+│  - Workers KV: TTL付きキャッシュ                     │
 └─────────────────────────────────────────────────────┘
 ```
-
-### データフロー
-
-1. ユーザーが動画ID/URLを入力
-2. フロントエンドが`VideoIdExtractor`でIDを抽出
-3. バックエンドAPIに並列リクエスト
-   - `/api/video/info`: 動画情報取得
-   - `/api/video/nicoad-history`: 広告履歴取得
-4. `RequestSemaphore`で同時実行数を制限（最大10）
-5. レスポンスをフロントエンドで整形して表示
 
 ## セットアップ
 
 ### 必要な環境
 
-- **Java 21** (JDK)
-- **Node.js 20.x** (Kobweb CLI用)
-- **Kobweb CLI 0.9.21**
+- **Node.js 20.x以上**
+- **pnpm**（バージョンは `package.json` の `packageManager` を参照）
 
-### Kobweb CLIのインストール
-
-```bash
-# Linux/macOS
-wget https://github.com/varabyte/kobweb-cli/releases/download/v0.9.21/kobweb-0.9.21.zip
-unzip kobweb-0.9.21.zip
-export PATH=$PATH:$(pwd)/kobweb-0.9.21/bin
-```
-
-### プロジェクトのクローン
+### インストール
 
 ```bash
 git clone https://github.com/numa08/niconico-advertiser-list2.git
 cd niconico-advertiser-list2
+pnpm install
 ```
 
 ### 開発サーバーの起動
 
 ```bash
-cd site
-kobweb run
+# バックエンド（wrangler dev、http://localhost:8787）
+pnpm dev
+
+# フロントエンド（Vite devサーバー。/api を localhost:8787 へプロキシ）
+pnpm -C frontend dev
 ```
 
-ブラウザで [http://localhost:8080](http://localhost:8080) を開いてください。
+詳細は [workers/README.md](./workers/README.md) を参照してください。
 
-## ビルド
-
-### Gradleビルド
+## ビルド・テスト
 
 ```bash
-./gradlew build
+# 全パッケージの型チェック
+pnpm typecheck
+
+# 全パッケージのテスト
+pnpm test
+
+# フロントエンドのビルド（frontend/dist/ に生成）
+pnpm -C frontend build
+
+# CI相当（typecheck + 全テスト + フロントエンドビルド）
+pnpm ci:build
+
+# リント / フォーマット
+pnpm lint
+pnpm format
 ```
-
-### 本番ビルド（エクスポート）
-
-```bash
-cd site
-kobweb export
-```
-
-エクスポートされたファイルは `site/.kobweb/` に生成されます。
-
-## テスト
-
-```bash
-# すべてのテストを実行
-./gradlew test
-
-# JVMテストのみ
-./gradlew jvmTest
-
-# JSテストのみ（ブラウザが必要）
-./gradlew jsTest
-```
-
-## コード品質
-
-```bash
-# ktlintチェック
-./gradlew ktlintCheck
-
-# ktlint自動修正
-./gradlew ktlintFormat
-
-# detekt静的解析
-./gradlew detekt
-```
-
-## Dockerビルド
-
-```bash
-# イメージをビルド
-docker build -t niconico-advertiser-list2 .
-
-# コンテナを起動
-docker run -p 8080:8080 niconico-advertiser-list2
-```
-
-ブラウザで [http://localhost:8080](http://localhost:8080) を開いてください。
 
 ## デプロイ
 
-### Koyebへのデプロイ
+本番デプロイは **Cloudflare Workers Builds**（gitリポジトリ連携）で自動化されています。
+mainブランチへのpushでビルド・デプロイが実行されます。
 
-詳細な手順は [DEPLOYMENT.md](./DEPLOYMENT.md) を参照してください。
-
-**簡易手順**:
-
-1. GitHubにプッシュ
-2. [Koyeb](https://www.koyeb.com/) でアカウント作成
-3. GitHubリポジトリを連携
-4. Dockerfileを使用してデプロイ
-
-**無料プラン**:
-- 512MB RAM、0.1 vCPU
-- Scale-to-Zero（自動停止/起動）
-- カスタムドメイン対応
+設定値・手動デプロイ手順は [workers/README.md](./workers/README.md) を参照してください。
 
 ## プロジェクト構成
 
 ```
 .
-├── site/
+├── workers/                 # バックエンド（Cloudflare Workers + Hono）
 │   ├── src/
-│   │   ├── commonMain/kotlin/       # 共通コード（フロント/バック）
-│   │   │   ├── models/              # データモデル
-│   │   │   └── util/                # ユーティリティ
-│   │   ├── jsMain/kotlin/           # フロントエンドコード
-│   │   │   ├── pages/               # ページコンポーネント
-│   │   │   ├── AppEntry.kt          # エントリーポイント
-│   │   │   ├── AppStyles.kt         # グローバルスタイル
-│   │   │   └── SiteTheme.kt         # テーマ設定
-│   │   ├── jvmMain/kotlin/          # バックエンドコード
-│   │   │   ├── api/                 # APIエンドポイント
-│   │   │   ├── datasource/          # データソース
-│   │   │   └── util/                # サーバーユーティリティ
-│   │   └── commonTest/kotlin/       # テストコード
-│   ├── .kobweb/
-│   │   └── conf.yaml                # Kobweb設定
-│   └── build.gradle.kts             # ビルド設定
-├── gradle/
-│   └── libs.versions.toml           # 依存関係バージョン管理
-├── Dockerfile                       # Dockerイメージ定義
-├── .dockerignore                    # Dockerビルド除外設定
-├── DEPLOYMENT.md                    # デプロイメントガイド
-└── README.md                        # このファイル
+│   │   ├── app.ts           # ルーティング・エラーハンドリング
+│   │   ├── cache.ts         # Workers KVキャッシュ層
+│   │   └── nico/            # ニコニコ動画アクセス（watchページ/koken API/nvapi）
+│   ├── test/                # Vitest（workerd上で実行）
+│   ├── scripts/             # APIコントラクトテスト等
+│   └── wrangler.jsonc       # Workers設定（KV・Static Assets）
+├── frontend/                # フロントエンド（React + Vite）
+│   ├── src/
+│   │   ├── pages/           # ページコンポーネント
+│   │   ├── components/      # UIコンポーネント
+│   │   ├── lib/             # ロジック（ID抽出・フォーマット・APIクライアント）
+│   │   └── context/         # 設定などの共有状態
+│   └── test/                # Vitest
+├── docs/                    # 仕様・移行ドキュメント
+│   ├── CLOUDFLARE_MIGRATION.md   # Cloudflare移行計画
+│   ├── WORKERS_API_SPEC.md       # API仕様（EARS記法）
+│   └── FRONTEND_REQUIREMENTS.md  # フロントエンド要件（EARS記法）
+└── package.json             # pnpm workspaceルート
 ```
 
 ## API仕様
 
-### バックエンドAPI
+詳細な仕様（EARS記法）は [docs/WORKERS_API_SPEC.md](./docs/WORKERS_API_SPEC.md) を参照してください。
 
-#### GET /api/video/info
+### GET /api/video/info
 
 動画情報を取得します。
 
 **クエリパラメータ**:
 - `videoId`: 動画ID（例: `sm12345678`）
+- `refresh`: `true` でキャッシュを無視して再取得（オプション）
 
-**レスポンス**:
-```json
-{
-  "videoId": "sm12345678",
-  "title": "動画タイトル",
-  "thumbnail": "https://..."
-}
-```
+### GET /api/video/nicoad-history
 
-#### GET /api/video/nicoad-history
-
-広告履歴を取得します。
+広告履歴を取得します。1リクエストで最大40ページ（4,000件）を取得し、
+終端に達していない場合は継続カーソル `nextOffsetId` を返します。
 
 **クエリパラメータ**:
 - `videoId`: 動画ID（例: `sm12345678`）
+- `offsetId`: 継続カーソル（前回レスポンスの `nextOffsetId`。オプション）
+- `refresh`: `true` でキャッシュを無視して再取得（オプション）
 
-**レスポンス**:
-```json
-[
-  {
-    "advertiserName": "広告主名",
-    "nicoadId": 12345,
-    "adPoint": 100,
-    "contribution": 100,
-    "startedAt": "2024-01-01T00:00:00Z",
-    "endedAt": "2024-01-02T00:00:00Z",
-    "userId": "12345678",
-    "message": "応援メッセージ"
-  }
-]
-```
+### GET /api/user/videos
 
-### レート制限
+ユーザーの投稿動画一覧を取得します。
 
-- **同時実行数**: 最大10リクエスト（グローバルセマフォ）
-- 11件目以降は待機状態となり、順次処理されます
-
-## トラブルシューティング
-
-### kobweb runが起動しない
-
-```bash
-# Kobweb CLIのバージョン確認
-kobweb version
-
-# 期待: v0.9.21
-```
-
-### ビルドでメモリ不足
-
-`gradle.properties`でメモリ設定を調整：
-
-```properties
-org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m
-```
-
-### Dockerビルドが遅い
-
-- 初回ビルドは依存関係のダウンロードで5〜10分かかります
-- 2回目以降はレイヤーキャッシュが効くため高速です
+**クエリパラメータ**:
+- `userId`: ユーザーID（数字のみ）
+- `page`: ページ番号（1以上。オプション、デフォルト1）
+- `refresh`: `true` でキャッシュを無視して再取得（オプション）
 
 ## ライセンス
 
@@ -300,5 +195,6 @@ MIT License
 
 ## 参考リンク
 
-- [Kobweb公式ドキュメント](https://kobweb.varabyte.com/)
-- [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/)
+- [Cloudflare Workers公式ドキュメント](https://developers.cloudflare.com/workers/)
+- [Hono公式ドキュメント](https://hono.dev/)
+- [React公式ドキュメント](https://react.dev/)
