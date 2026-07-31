@@ -3,7 +3,7 @@
 Kobweb（Compose for Web / Kotlin/JS）で実装されている現行フロントエンドの仕様を、実装コードから抽出して EARS 記法で整理したもの。React への再実装時の受け入れ基準として使う。
 
 - **対象**: `site/src/jsMain/**`（画面・状態・スタイル）、`site/src/commonMain/util/*Extractor.kt`（入力バリデーション）、`site/build.gradle.kts` の `kobweb.app.index`（head / OGP / GA4）
-- **対象外**: バックエンドAPIの仕様。API契約は [CLOUDFLARE_MIGRATION.md](./CLOUDFLARE_MIGRATION.md) §4 の項目1〜11が正であり、本書はその**呼び出し側**の責務のみを定義する
+- **対象外**: バックエンドAPIの仕様。API契約は [WORKERS_API_SPEC.md](./WORKERS_API_SPEC.md)（詳細仕様）および [CLOUDFLARE_MIGRATION.md](./CLOUDFLARE_MIGRATION.md) §4 の項目1〜11（完了条件）が正であり、本書はその**呼び出し側**の責務のみを定義する。特に広告履歴は継続カーソル方式（WORKERS_API_SPEC.md AH-2〜AH-4）であり、全件の結合はフロントエンドの責務である（FE-070a）
 - **位置づけ**: 本書は CLOUDFLARE_MIGRATION.md §4 の項目12〜16（フロントエンド）を展開・詳細化したもの
 - **原典**: 記述は原則として実装コードを正とする。ただし付録Aに挙げた既知の不具合については**修正後の仕様**を要件として記述している（対応方針は決定済み）。README.md の機能説明と食い違う箇所は本書内で明示する
 
@@ -141,7 +141,8 @@ EARS（Easy Approach to Requirements Syntax）の5パターンを日本語で用
 
 | ID | 種別 | 要件 |
 |---|---|---|
-| FE-070 | 事象駆動 | ページのURLパラメータ `videoId` が確定したとき、アプリケーションは `GET /api/video/info?videoId={videoId}` と `GET /api/video/nicoad-history?videoId={videoId}` を**並列に**発行し、両方の完了を待ってからローディング状態を解除しなければならない。 |
+| FE-070 | 事象駆動 | ページのURLパラメータ `videoId` が確定したとき、アプリケーションは `GET /api/video/info?videoId={videoId}` と `GET /api/video/nicoad-history?videoId={videoId}` を**並列に**発行し、両方の完了（広告履歴はFE-070aの全チャンク取得完了）を待ってからローディング状態を解除しなければならない。 |
+| FE-070a | 状態駆動 | 広告履歴レスポンスに `nextOffsetId` が含まれている間、アプリケーションは `offsetId={nextOffsetId}` を付与して `GET /api/video/nicoad-history` を繰り返し呼び出し、各レスポンスの `histories` を受信順に連結しなければならない。`nextOffsetId` を含まないレスポンスを受けたとき、それまでの連結結果をもって広告履歴の取得完了としなければならない。ループ中の各リクエストには初回リクエストの `refresh` 指定を引き継がなければならない。暴走防止のため、継続リクエストは最大25回（約10万件）で打ち切らなければならない。 |
 | FE-071 | 状態駆動 | 取得中である間、ページは「読み込み中...」を表示しなければならない。 |
 | FE-072 | 望ましくない挙動 | もしいずれかのリクエストがHTTP 404を返したならば、アプリケーションは FE-005 に従い `/404` へ遷移しなければならない（エラーメッセージは表示しない）。 |
 | FE-073 | 望ましくない挙動 | もし404以外のエラーが発生したならば、アプリケーションは発生したエラーメッセージを `"; "` で連結して表示しなければならない。 |
@@ -151,9 +152,12 @@ EARS（Easy Approach to Requirements Syntax）の5パターンを日本語で用
 | FE-077 | 状態駆動 | 動画情報と広告履歴の少なくとも一方が `cachedAt` を保持している間、ページは「キャッシュ: {利用中\|更新済} ({日時})」を表示しなければならない。日時は存在する `cachedAt` のうち**より古い方**とし、`null` の側は比較から除外しなければならない（片方のみ存在する場合はその値を用いる）。両方が `null` の間は本表示を行ってはならない。 |
 | FE-077a | 状態駆動 | FE-077の表示ラベルは、動画情報と広告履歴の `fromCache` が**ともに真**である間のみ「利用中」とし、それ以外は「更新済」としなければならない。`cachedAt` が `null` の側は `fromCache` を偽として扱わなければならない。 |
 | FE-077b | 遍在 | FE-077の日時は、ブラウザのローカルタイムゾーンで「{年}年{月}月{日}日 HH:mm:ss」形式（時分秒はゼロ埋め2桁）に整形しなければならない。 |
+| FE-077c | 遍在 | 広告履歴が複数チャンクで取得された場合（FE-070a）、FE-077の比較に用いる広告履歴側の `cachedAt` は全チャンク中**最古**の値とし、FE-077aの判定に用いる広告履歴側の `fromCache` は**全チャンクが真**である場合のみ真としなければならない。 |
 | FE-078 | 望ましくない挙動 | もし日時文字列の整形に失敗したならば、アプリケーションは元の文字列をそのまま表示しなければならない。 |
 
-> **FE-077 は現行実装と異なる。** 現行は動画情報側の `cachedAt` / `fromCache` のみを見ており、広告履歴の方が古い場合に実態より新しく見える（付録A-11）。
+> **FE-070a は現行実装（Kobweb改修版）を踏襲した要件。** バックエンドはWorkers無料プランのサブリクエスト上限対策（案b）により、1リクエストあたり最大40ページ（4,000件）で打ち切って継続カーソル `nextOffsetId` を返す。sm9級（2万件超）の動画では全件取得に複数チャンクのループが必須となる（WORKERS_API_SPEC.md AH-2〜AH-4）。
+>
+> **FE-077 は現行実装と異なる。** 現行は動画情報側の `cachedAt` / `fromCache` のみを見ており、広告履歴の方が古い場合に実態より新しく見える（付録A-11）。FE-077cの複数チャンク集約規則は継続カーソル対応（FE-070a）に伴う本書での新規決定。
 >
 > 実装上の注意: 現行の広告履歴取得関数はレスポンス包絡から `histories` だけを取り出し `cachedAt` / `fromCache` を捨てている。FE-077 を満たすには**取得層が包絡ごと保持するように変える**必要がある（FE-142）。
 
@@ -251,8 +255,8 @@ API自体の契約は CLOUDFLARE_MIGRATION.md §4 項目1〜11。ここではフ
 | ID | 種別 | 要件 |
 |---|---|---|
 | FE-140 | 遍在 | フロントエンドは、APIをオリジン相対パス `/api/*` で呼び出さなければならない（絶対URLやクロスオリジン設定に依存してはならない）。 |
-| FE-141 | 遍在 | フロントエンドが用いるクエリパラメータは、`GET /api/video/info` が `videoId`（および任意の `refresh=true`）、`GET /api/video/nicoad-history` が `videoId`（および任意の `refresh=true`）、`GET /api/user/videos` が `userId` と `page` でなければならない。 |
-| FE-142 | 遍在 | フロントエンドが消費するレスポンスフィールドは以下でなければならない。<br>・動画情報: `videoId` / `title` / `thumbnail` / `userId` / `cachedAt` / `fromCache`<br>・広告履歴: `histories[]`（各要素の `advertiserName` と `contribution` を使用）／ `cachedAt` / `fromCache`（FE-077・FE-077aで使用）<br>・投稿動画: `videos[]`（`videoId` / `title` / `thumbnail` / `published`）／ `videosCount` / `hasNext` |
+| FE-141 | 遍在 | フロントエンドが用いるクエリパラメータは、`GET /api/video/info` が `videoId`（および任意の `refresh=true`）、`GET /api/video/nicoad-history` が `videoId`（および任意の `refresh=true`、継続取得時は前レスポンスの `nextOffsetId` を渡す `offsetId`）、`GET /api/user/videos` が `userId` と `page` でなければならない。 |
+| FE-142 | 遍在 | フロントエンドが消費するレスポンスフィールドは以下でなければならない。<br>・動画情報: `videoId` / `title` / `thumbnail` / `userId` / `cachedAt` / `fromCache`<br>・広告履歴: `histories[]`（各要素の `advertiserName` と `contribution` を使用）／ `cachedAt` / `fromCache`（FE-077・FE-077a・FE-077cで使用）／ `nextOffsetId`（FE-070aの継続カーソル。取得完了時のレスポンスには含まれない）<br>・投稿動画: `videos[]`（`videoId` / `title` / `thumbnail` / `published`）／ `videosCount` / `hasNext` |
 | FE-143 | 遍在 | 投稿動画取得のエラーメッセージは、HTTP 404 のとき「ユーザーが見つかりませんでした」、その他のエラーステータスのとき「動画の取得に失敗しました: {statusText}」、例外発生時「エラーが発生しました: {例外メッセージ}」でなければならない。 |
 | FE-144 | 遍在 | 動画情報取得の失敗メッセージは「動画情報の取得に失敗しました: {statusText}」、広告履歴取得の失敗メッセージは「広告履歴の取得に失敗しました: {statusText}」、いずれも例外発生時は「エラーが発生しました: {例外メッセージ}」でなければならない。 |
 | FE-145 | 遍在 | エラー表示は、見出し「エラー」と本文をエラーカラーの枠付き領域に表示しなければならない（トップページの投稿動画エラーは本文のみ）。 |
@@ -504,3 +508,25 @@ FE-016 の prefix 規則は推測ではなく実測に基づく。検証日: 202
 
 - 実際の `iconUrl` には `?1546415269` のようなキャッシュバスター用クエリが付くが、クエリなしでも画像は 200 で取得できる。付与は不要
 - アイコンを設定していないユーザーは `https://secure-dcdn.cdn.nimg.jp/nicoaccount/usericon/defaults/blank.jpg` を返す。FE-018 のフォールバックはこのケースおよび退会済みユーザーを想定している
+
+---
+
+## 付録F: 自動テスト対応表
+
+各要件と `frontend/test/` 配下のテストの相互参照。テスト名は要件IDをプレフィックスに持つ
+（例: `it("FE-104/D-3: ...")`）。テストが参照するモジュール契約は `frontend/src/lib/` に
+スタブとして定義済みで、React実装はこの契約を満たすこと（TDD: テストが先、実装が後）。
+
+| 要件ID | テストファイル / 確認方法 |
+|---|---|
+| FE-016（アイコンURL） | `userIconUrl.test.ts`（付録D-8の4ベクタ + 5桁未満） |
+| FE-033a（リクエスト中断） | `api.test.ts`（AbortSignal伝播）。UI側の「後着レスポンスを反映しない」はコンポーネントテストで実装フェーズに検証 |
+| FE-070a・FE-077c（継続カーソル） | `api.test.ts`（ループ・offsetId付与・refresh引き継ぎ・25回打ち切り・最古cachedAt・fromCacheのAND） |
+| FE-100〜FE-110（整形） | `formatAdvertiserList.test.ts`（付録D-1〜D-7のテストベクタを含む） |
+| FE-120〜FE-124（動画ID抽出） | `videoIdExtractor.test.ts`（Kotlin `VideoIdExtractorTest` のケースを移植） |
+| FE-130〜FE-134（投稿者ID抽出） | `userIdExtractor.test.ts`（Kotlin `UserIdExtractorTest` のケースを移植） |
+| FE-140〜FE-144（API連携） | `api.test.ts`（パス・パラメータ・消費フィールド・エラーメッセージ文言） |
+| FE-170〜FE-172・FE-171a（localStorage） | `preferences.test.ts`（キー名・3値検証・障害時フォールバック） |
+| FE-001〜FE-006（ルーティング）、FE-010〜FE-018（レイアウト）、FE-020〜FE-029（テーマ）、FE-030〜FE-040（トップ）、FE-050〜FE-059（ダイアログ）、FE-060〜FE-063（検索フォーム）、FE-070〜FE-095（広告主リスト画面）、FE-145（エラー表示）、FE-180〜FE-181（404） | React実装フェーズでコンポーネントテスト（Testing Library）として追加する。ロジック部分（整形・抽出・API層）は上記で先行検証済み |
+| FE-150〜FE-153（GA4） | 実装フェーズでコンポーネントテスト＋手動確認（gtag未定義時の無害性はユニットテスト化可能） |
+| FE-160〜FE-164（head/OGP） | 実装フェーズで `index.html` の静的検査。FE-164（ogp.png）は画像制作が別途必要 |

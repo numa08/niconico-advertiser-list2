@@ -141,12 +141,14 @@ GitHub Actionsを使わず **Cloudflare Workers Builds（gitリポジトリ連�
 
 記法: 「◯◯は◯◯されたとき、◯◯しなければならない」
 
+API互換性の詳細仕様（EARS記法・全39要件）は [WORKERS_API_SPEC.md](./WORKERS_API_SPEC.md) が正。本節は完了条件レベルの要約である。
+
 ### API互換性
 
 1. `/api/video/info` は、有効な `videoId` が指定されたとき、HTTP 200 と動画情報（videoId・タイトル・サムネイルURL・投稿者ID・cachedAt・fromCache）のJSONを現行と同一のスキーマで返さなければならない。
 2. `/api/video/info` は、`videoId` が未指定または空で呼び出されたとき、HTTP 400 を返さなければならない。
 3. `/api/video/info` は、存在しない動画IDが指定されたとき、HTTP 404 と `{"error": "..."}` 形式のJSONを返さなければならない。
-4. `/api/video/nicoad-history` は、広告履歴が複数ページ（100件超）存在する動画IDが指定されたとき、全ページを取得し1つの履歴リストに結合して返さなければならない。
+4. `/api/video/nicoad-history` は、広告履歴が複数ページ（100件超）存在する動画IDが指定されたとき、カーソル方式で複数ページを取得し1つの履歴リストに結合して返さなければならない。ただし1リクエストで取得するページ数は最大40とし、終端に達していない場合は継続カーソル `nextOffsetId` を返さなければならない。`offsetId` パラメータが指定されたとき、そのカーソル位置から取得を再開しなければならない（案b決定事項・2026-07-31改訂。全件の結合はフロントエンドの責務: FRONTEND_REQUIREMENTS.md FE-070a。詳細は WORKERS_API_SPEC.md AH-1〜AH-4）。
 5. `/api/video/nicoad-history` は、広告履歴のページを連続取得するとき、ページ間に10〜100msの遅延を挿入しなければならない。
 6. `/api/user/videos` は、`userId` に数字以外が含まれるとき、または `page` が1未満のとき、HTTP 400 を返さなければならない。
 7. `/api/user/videos` は、有効な `userId` が指定されたとき、動画リスト・件数・`hasNext`・`feedUpdated`・`cachedAt`・`fromCache` を含むJSONを現行と同一のスキーマで返さなければならない。
