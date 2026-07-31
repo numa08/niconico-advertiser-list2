@@ -62,7 +62,7 @@ Koyeb（Docker + JVM 常駐サーバー）から Cloudflare への移行に向�
       → watchページ・koken APIはOK（**User-Agent必須**）。**Atomフィードは廃止されており nvapi へ移行が必要**
 - [x] `kobweb export --layout static` の検証 → 成立。ただし動的ルート `/advertisers/{videoId}` はSPAフォールバック（`not_found_handling: "single-page-application"`）で対応する
 - [x] 広告件数の多い実動画でのページ数実態調査 → sm9で8,000件超を確認。無料プランのサブリクエスト上限50では不足
-- [ ] `workers-spike/` をCloudflareアカウントへデプロイし、実エッジIPからの疎通を最終確認する
+- [x] `workers-spike/` をCloudflareアカウントへデプロイし、実エッジIPからの疎通を最終確認する → 全項目期待値どおり（ブロックなし）
 - [ ] サブリクエスト上限の対策（案a: Workers Paid化 / 案b: 継続カーソル方式）を決定する
 
 ### フェーズ1: プロジェクト基盤

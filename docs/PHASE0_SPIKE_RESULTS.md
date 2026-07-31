@@ -1,12 +1,7 @@
 # フェーズ0: スパイク検証結果
 
-実施日: 2026-07-30
-実施環境: クラウドサンドボックス（データセンターIPからの直接アクセス）+ ローカルworkerd（`wrangler dev`、Workersと同一ランタイム）
-
-> **注意**: Cloudflareの実エグレスIPからの最終確認は未実施。`workers-spike/` を
-> `npx wrangler deploy` してエッジから同じチェックを実行すること（手順は
-> `workers-spike/README.md`）。ここまでの検証はすべてデータセンターIPで
-> ブロックされていないため、エッジでも通る見込みは高い。
+実施日: 2026-07-30〜31
+実施環境: クラウドサンドボックス（データセンターIPからの直接アクセス）+ ローカルworkerd（`wrangler dev`、Workersと同一ランタイム）+ **Cloudflare実エッジ（`workers-spike/` をデプロイして確認済み）**
 
 ## 結果サマリ
 
@@ -18,6 +13,7 @@
 | ユーザー動画Atomフィード | ❌ **廃止されている** | 代替のnvapiを検証済み（下記） |
 | nvapi（`nvapi.nicovideo.jp/v3/users/{id}/videos`） | ✅ | `X-Frontend-Id: 6` + User-Agent 必須 |
 | レート制限・IPブロック | ✅ 遭遇せず | 60ms間隔で80連続リクエストしても正常応答 |
+| **Cloudflare実エッジからの疎通** | ✅ | デプロイした `workers-spike/` で全項目が期待値どおり（下記） |
 | `kobweb export --layout static` | ✅ | 成果物生成を確認。ただし動的ルートはSPAフォールバック必須（本文参照） |
 
 ## 詳細
@@ -139,10 +135,32 @@ NotFoundページ表示となる（現行の404ステータス応答から変わ
 （今回の環境では playwright build v1187 が自動ダウンロードされた）。CI設計時は
 Dockerfile同様にブラウザ取得手段を確保すること。
 
+### 7. Cloudflare実エッジからの疎通確認（2026-07-31実施）
+
+`workers-spike/` を実際のCloudflareアカウントへデプロイし、エッジの `GET /` で
+全項目が期待値どおりであることを確認した:
+
+```json
+{
+  "checkedAt": "2026-07-30T23:55:20.082Z",
+  "watchPage": {"status": 200, "ogTitle": "新・豪血寺一族 -煩悩解放 - レッツゴー！陰陽師", "authorUserId": "4"},
+  "watchPage404": {"status": 404},
+  "nicoadApi": {"status": 200, "itemCount": 100, "nextCount": 100, "totalPoint": 23318300, "cursorFollowStatus": 200, "cursorFollowItemCount": 100},
+  "nvapi": {"status": 200, "totalCount": 19, "itemCount": 19, "firstVideoId": "sm18219289"}
+}
+```
+
+（og:image も正常に取得。上記は主要フィールドの抜粋）
+
+**結論: CloudflareのエグレスIPはニコニコのbot対策にブロックされていない。**
+watchページのメタ抽出（HTMLRewriter）、koken APIのカーソルページング、
+nvapiのすべてが実エッジ環境で動作する。技術的なブロッカーはなく、移行は成立する。
+
 ## フェーズ0の残タスク
 
-- [ ] `workers-spike/` をCloudflareアカウントへデプロイし、実エッジIPからの
-      疎通を確認する（`/` と `/paginate?videoId=sm9&maxPages=45`）
+- [x] `workers-spike/` をCloudflareアカウントへデプロイし、実エッジIPからの
+      疎通を確認する → ✅ 全項目期待値どおり（上記セクション7）
 - [ ] サブリクエスト上限対策（案a: Paid化 / 案b: 継続カーソル方式）の決定
 - [ ] （推奨）Koyeb本番の `/api/user/videos` が現在も動作しているか確認する
       （Atomフィード廃止の影響確認）
+- [ ] 検証完了後、スパイクWorkerを削除する（`cd workers-spike && npx wrangler delete`）
