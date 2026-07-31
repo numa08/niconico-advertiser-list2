@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "niconico-advertiser-list2",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Kobweb静的エクスポート成果物（`kobweb export --layout static` の出力）。
+  // 動的ルート /advertisers/{videoId} はプリレンダリングされないため、
+  // SPAフォールバックで index.html を返しクライアント側ルーターに処理させる
+  "assets": {
+    "directory": "../site/.kobweb/site",
+    "not_found_handling": "single-page-application"
+  },
+
+  "kv_namespaces": [
+    {
+      "binding": "NICO_CACHE",
+      // 本番namespaceは `wrangler kv namespace create NICO_CACHE` で作成後にIDを差し替える
+      "id": "TBD_CREATE_WITH_WRANGLER_KV_NAMESPACE_CREATE"
+    }
+  ],
+
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
