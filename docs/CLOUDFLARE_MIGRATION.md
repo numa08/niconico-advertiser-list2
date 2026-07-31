@@ -131,21 +131,27 @@ GitHub Actionsを使わず **Cloudflare Workers Builds（gitリポジトリ連�
 - [x] `wrangler.jsonc` の `assets.directory` を `../frontend/dist` へ切り替える
       （未完成状態はデプロイしない方針のため即時切り替え）。React実装後のSPAルーティング
       再確認も完了（`/advertisers/{videoId}` 直アクセス・クライアント側404を実機確認）
-- [ ] Cloudflare Workers Builds を設定（ビルドコマンド: フロントエンドビルド + `wrangler deploy`、
+- [x] Cloudflare Workers Builds を設定（ビルドコマンド: フロントエンドビルド + `wrangler deploy`、
       GA4測定IDはビルド環境変数で注入）
-      → 準備完了（2026-07-31）: 本番KV namespace作成・`wrangler.jsonc` へのID反映済み。
-      CIスクリプト `pnpm ci:build`（typecheck+全テスト+ビルド。失敗時デプロイ中断=完了条件20）と
-      ダッシュボード設定値を `workers/README.md` に記載。残りはダッシュボードでの
-      リポジトリ接続操作のみ。**注意: 本番ブランチ(main)へ本ブランチをマージするまで
-      ビルドは失敗する**（mainはまだKobweb構成のため）
-- [ ] Kobweb/Gradle資産（`site/`、`gradle*`、`Dockerfile` 等）の削除
+      → **完了（2026-07-31）**: ダッシュボードでリポジトリを接続し、Cloudflareへのデプロイが完了。
+      設定値（ビルドコマンド `pnpm ci:build`、デプロイコマンド等）は `workers/README.md` に記載のとおり
+- [x] Kobweb/Gradle資産（`site/`、`gradle*`、`Dockerfile` 等）の削除
+      → 完了（2026-07-31）。削除対象: `site/`、`gradle/`、`gradlew`、`gradlew.bat`、
+      `gradle.properties`、`gradle-ci.properties`、`settings.gradle.kts`、`Dockerfile`、
+      `.dockerignore`、`DEPLOYMENT.md`（Koyeb専用ガイドのため削除。デプロイ手順は
+      `workers/README.md` に集約）、`DESIGN_USER_VIDEOS.md`（Kobweb/JVM実装前提の設計書。
+      現行仕様は WORKERS_API_SPEC.md / FRONTEND_REQUIREMENTS.md が正）。
+      あわせて README・`.gitignore`・`.editorconfig` から Kotlin/Gradle/Koyeb 前提の記述を除去
 
 ### フェーズ6: 切り替え・撤収
 
 - [ ] 本番URL（カスタムドメイン or `*.workers.dev`）を決定し、DNS/公開URLを切り替える
 - [ ] 並行稼働期間中に GA4 計測・主要動画IDでの動作を確認する
 - [ ] Koyeb のサービスを停止・削除する
-- [ ] README / DEPLOYMENT.md を Cloudflare 前提に更新し、Dockerfile 等の不要ファイルを整理する
+- [x] README / DEPLOYMENT.md を Cloudflare 前提に更新し、Dockerfile 等の不要ファイルを整理する
+      → 完了（2026-07-31、フェーズ5の資産削除と同時に実施）: README を Cloudflare Workers +
+      React 前提に全面更新。DEPLOYMENT.md はKoyeb専用の内容だったため削除し、デプロイ手順は
+      `workers/README.md` に集約
 
 ## 4. 移植の完了条件
 
@@ -191,4 +197,4 @@ API互換性の詳細仕様（EARS記法・全39要件）は [WORKERS_API_SPEC.m
 
 21. 公開URLは、切り替えが実施されたとき、新環境（Workers）へ到達しなければならない。
 22. 新環境での安定稼働が確認されたとき、Koyeb 上のサービスは停止・削除されなければならない。
-23. 移行が完了したとき、README および DEPLOYMENT.md は Cloudflare 前提の手順に更新されなければならない。
+23. 移行が完了したとき、README は Cloudflare 前提の手順に更新されなければならない（達成済み・2026-07-31。Koyeb専用だった DEPLOYMENT.md は削除し、デプロイ手順は workers/README.md に集約）。

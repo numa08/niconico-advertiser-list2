@@ -1,38 +1,17 @@
 # General ignores
 .DS_Store
-build
-out
-kotlin-js-store
 
-# IntelliJ ignores
-*.iml
-*.ipr
-
-# Ignore entire .idea directory
+# IDE ignores
 .idea/
-
-# But track these shared project settings
-!.idea/codeStyles/
-!.idea/inspectionProfiles/
-!.idea/runConfigurations/
-!.idea/.gitignore
-
-# Gradle ignores
-.gradle
-
-# Kotlin ignores
-.kotlin
+.vscode/
+*.swp
+*.swo
+*~
 
 # Claude Code ignores
 .claude/cache/
 .claude/mcp.json
 .claude/.env
-
-# Editor ignores
-.vscode/
-*.swp
-*.swo
-*~
 
 # Environment variables
 .env
@@ -45,9 +24,6 @@ logs/
 
 # OS specific
 Thumbs.db
-
-# Code quality tools
-site/detekt-baseline.xml
 
 # Playwright MCP
 .playwright-mcp/
