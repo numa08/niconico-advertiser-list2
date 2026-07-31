@@ -14,7 +14,7 @@ import { fetchVideoInfo } from "./nico/watchPage";
 /**
  * APIルーター本体
  *
- * 静的アセット（Kobwebエクスポート成果物）は wrangler.jsonc の assets 設定で
+ * 静的アセット（Reactフロントエンドのビルド成果物）は wrangler.jsonc の assets 設定で
  * 配信されるため、この Worker は /api/* のみを処理する（仕様: NF-4）。
  * 仕様は docs/WORKERS_API_SPEC.md を参照。
  */

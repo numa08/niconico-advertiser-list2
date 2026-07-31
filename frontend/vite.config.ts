@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
-  // GA4測定IDは現行(Kobweb/Koyeb)と同じ環境変数名 GA4_MEASUREMENT_ID で注入できるようにする
+  // GA4測定IDは環境変数 GA4_MEASUREMENT_ID でビルド時に注入する
   envPrefix: ["VITE_", "GA4_"],
   server: {
     // ローカル開発時はバックエンド(wrangler dev)へAPIをプロキシする
