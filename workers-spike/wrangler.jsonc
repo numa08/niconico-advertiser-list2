@@ -1,6 +1,0 @@
-{
-  // フェーズ0検証用Worker（本番用ではない。検証完了後に削除してよい）
-  "name": "niconico-advertiser-list-spike",
-  "main": "src/index.js",
-  "compatibility_date": "2026-07-01"
-}

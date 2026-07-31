@@ -509,8 +509,16 @@ private suspend fun fetchVideoInfo(
         Triple(null, 500, "エラーが発生しました: ${e.message}")
     }
 
+/** 継続カーソルをたどる最大回数。サーバー側は1回あたり最大40ページ（4,000件）を返す */
+private const val MAX_HISTORY_CHUNK_REQUESTS = 25
+
 /**
  * 広告履歴を取得する
+ *
+ * サーバーはサブリクエスト上限対策のため1リクエストで取得しきれない場合に
+ * `nextOffsetId`（継続カーソル）を返す。本関数はカーソルがなくなるまで
+ * 繰り返し取得し、全件を結合して返す。
+ *
  * @param videoId 動画ID
  * @param cacheBehavior キャッシュの動作
  * @return Triple(データ, HTTPステータスコード, エラーメッセージ)
@@ -518,26 +526,42 @@ private suspend fun fetchVideoInfo(
 private suspend fun fetchNicoadHistory(
     videoId: String,
     cacheBehavior: CacheBehavior = CacheBehavior.USE_CACHE,
-): Triple<List<NicoadHistory>?, Int, String?> =
-    try {
-        val url =
-            "/api/video/nicoad-history?videoId=$videoId" +
-                if (cacheBehavior == CacheBehavior.FORCE_REFRESH) "&refresh=true" else ""
-        val response =
-            window
-                .fetch(url, RequestInit())
-                .await()
+): Triple<List<NicoadHistory>?, Int, String?> {
+    return try {
+        val allHistories = mutableListOf<NicoadHistory>()
+        var offsetId: Int? = null
+        var requestCount = 0
 
-        if (response.ok) {
+        do {
+            val url =
+                buildString {
+                    append("/api/video/nicoad-history?videoId=$videoId")
+                    offsetId?.let { append("&offsetId=$it") }
+                    if (cacheBehavior == CacheBehavior.FORCE_REFRESH) {
+                        append("&refresh=true")
+                    }
+                }
+            val response =
+                window
+                    .fetch(url, RequestInit())
+                    .await()
+
+            if (!response.ok) {
+                return Triple(null, response.status.toInt(), "広告履歴の取得に失敗しました: ${response.statusText}")
+            }
+
             val json = response.text().await()
             val historyResponse = Json.decodeFromString<NicoadHistoryResponse>(json)
-            Triple(historyResponse.histories, response.status.toInt(), null)
-        } else {
-            Triple(null, response.status.toInt(), "広告履歴の取得に失敗しました: ${response.statusText}")
-        }
+            allHistories += historyResponse.histories
+            offsetId = historyResponse.nextOffsetId
+            requestCount++
+        } while (offsetId != null && requestCount < MAX_HISTORY_CHUNK_REQUESTS)
+
+        Triple(allHistories, 200, null)
     } catch (e: Exception) {
         Triple(null, 500, "エラーが発生しました: ${e.message}")
     }
+}
 
 /**
  * 広告主リストをフォーマットする
