@@ -98,9 +98,17 @@ Koyeb（Docker + JVM 常駐サーバー）から Cloudflare への移行に向�
 
 ### フェーズ4: テスト
 
-- [ ] 既存テスト相当の移植: `VideoIdExtractor` / `UserIdExtractor` / `AtomFeedParser` のテストケースを TypeScript 側パーサに対して移植する
-- [ ] APIコントラクトテスト: 現行 Koyeb 環境と新 Workers 環境に同一リクエストを投げ、レスポンスJSONの互換性を検証する
-- [ ] キャッシュ挙動（TTL内2回目で `fromCache=true`、`refresh=true` で再取得）のテスト
+- [x] 既存テスト相当の移植 → 計画当初から状況が変わったため再解釈のうえ完了:
+      `VideoIdExtractor` / `UserIdExtractor` は案Aによりフロントエンド（Kotlin）に残留し、既存のcommonTestが引き続き有効。
+      `AtomFeedParser` はnvapi移行により廃止対象。TypeScript側で新規に必要なパーサ相当
+      （watchページメタ抽出・koken/nvapiレスポンスマッピング・バリデーション）は `workers/test/` の単体テスト46件でカバー
+- [x] APIコントラクトテスト: 現行 Koyeb 本番と新 Workers（ローカル）に同一リクエストを投げ、互換性を検証する
+      → `workers/scripts/contract-check.mjs`（`pnpm test:contract`）。2026-07-31実施、**想定外の差分なし**。
+      判明事項: (1) kotlinxのデフォルト値省略により現行はnull値キー（`userId`/`message`等）を出力しないが、新環境の明示的null出力とデコード互換
+      (2) **現行本番の `/api/user/videos` は動画19件保有ユーザーに0件を返し、実際に機能していない**（Atomフィード廃止の影響。フェーズ0の推測を実証、nvapi移行で修復）
+      (3) 削除済み動画のwatchページ404挙動も両環境で一致
+- [x] キャッシュ挙動（TTL内2回目で `fromCache=true`、`refresh=true` で再取得）のテスト
+      → `workers/test/cache.test.ts`（CA-1〜CA-7）で検証済み（フェーズ2で実施）
 
 ### フェーズ5: CI/CD
 

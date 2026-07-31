@@ -28,6 +28,13 @@ pnpm test         # Vitest（workerd上で実行。ネットワークアクセ�
 pnpm typecheck    # tsc --noEmit
 ```
 
+APIコントラクトテスト（現行Koyeb本番との互換性検証。ネットワークアクセスあり・手動実行）:
+
+```bash
+pnpm dev                # 別ターミナルでWorkersを起動しておく
+pnpm test:contract      # LEGACY_BASE / NEW_BASE 環境変数で対象URLを変更可能
+```
+
 フロントエンドも含めて動作確認する場合は、先にリポジトリルートで
 `kobweb export --layout static`（`site/.kobweb/site/` に成果物が生成される）を実行してから
 `pnpm dev` を起動する。

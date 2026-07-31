@@ -9,6 +9,7 @@
     "ensure-assets": "mkdir -p ../site/.kobweb/site",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:contract": "node scripts/contract-check.mjs",
     "typecheck": "tsc --noEmit",
     "cf-typegen": "wrangler types"
   },
