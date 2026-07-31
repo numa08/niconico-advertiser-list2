@@ -163,9 +163,7 @@ describe("fetchNicoadHistory", () => {
 
   it("FE-070a: 継続リクエストは最大25回で打ち切る", async () => {
     const calls = mockFetch(() =>
-      Response.json(
-        historyChunk(["X"], { cachedAt: "c", fromCache: false, nextOffsetId: 1 }),
-      ),
+      Response.json(historyChunk(["X"], { cachedAt: "c", fromCache: false, nextOffsetId: 1 })),
     );
 
     const result = await fetchNicoadHistory("sm9");
@@ -183,9 +181,7 @@ describe("fetchNicoadHistory", () => {
               nextOffsetId: 10,
             }),
           )
-        : Response.json(
-            historyChunk(["B"], { cachedAt: "2026-07-30T23:00:00Z", fromCache: true }),
-          ),
+        : Response.json(historyChunk(["B"], { cachedAt: "2026-07-30T23:00:00Z", fromCache: true })),
     );
 
     const result = await fetchNicoadHistory("sm9");
@@ -196,9 +192,7 @@ describe("fetchNicoadHistory", () => {
   it("FE-077c: fromCacheは全チャンクが真の場合のみ真", async () => {
     mockFetch((url) =>
       url.searchParams.get("offsetId") === null
-        ? Response.json(
-            historyChunk(["A"], { cachedAt: "c1", fromCache: true, nextOffsetId: 10 }),
-          )
+        ? Response.json(historyChunk(["A"], { cachedAt: "c1", fromCache: true, nextOffsetId: 10 }))
         : Response.json(historyChunk(["B"], { cachedAt: "c2", fromCache: false })),
     );
 

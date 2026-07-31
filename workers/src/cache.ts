@@ -14,10 +14,7 @@ export interface CacheEnvelope<T> {
 /**
  * キャッシュ読み取り。KV障害時はnullを返しキャッシュミスとして扱う（CA-7）
  */
-export async function readCache<T>(
-  kv: KVNamespace,
-  key: string,
-): Promise<CacheEnvelope<T> | null> {
+export async function readCache<T>(kv: KVNamespace, key: string): Promise<CacheEnvelope<T> | null> {
   try {
     return await kv.get<CacheEnvelope<T>>(key, "json");
   } catch (error) {

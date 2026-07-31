@@ -22,9 +22,7 @@ describe("extractUserId", () => {
 
   it("FE-133: /user/{id}/video や RSS URL・フラグメント付きも受理する", () => {
     expect(extractUserId("https://www.nicovideo.jp/user/753685/video")).toBe("753685");
-    expect(extractUserId("https://www.nicovideo.jp/user/753685/video?rss=atom")).toBe(
-      "753685",
-    );
+    expect(extractUserId("https://www.nicovideo.jp/user/753685/video?rss=atom")).toBe("753685");
     expect(extractUserId("https://www.nicovideo.jp/user/753685#tab")).toBe("753685");
   });
 

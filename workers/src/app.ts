@@ -1,12 +1,12 @@
-import { Hono } from "hono";
 import type { ErrorHandler } from "hono";
+import { Hono } from "hono";
 import {
   NICOAD_HISTORY_TTL_SECONDS,
   USER_VIDEOS_TTL_SECONDS,
   VIDEO_INFO_TTL_SECONDS,
   withCache,
 } from "./cache";
-import { VideoNotFoundError, logError } from "./nico/http";
+import { logError, VideoNotFoundError } from "./nico/http";
 import { fetchNicoadHistoryChunk } from "./nico/nicoad";
 import { fetchUserVideos } from "./nico/nvapi";
 import { fetchVideoInfo } from "./nico/watchPage";

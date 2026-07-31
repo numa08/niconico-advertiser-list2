@@ -63,12 +63,8 @@ export function watchPageHtml(options: {
   jsonLdAuthorUrl?: string;
 }): string {
   const metaTags = [
-    options.ogTitle !== undefined
-      ? `<meta property="og:title" content="${options.ogTitle}">`
-      : "",
-    options.ogImage !== undefined
-      ? `<meta property="og:image" content="${options.ogImage}">`
-      : "",
+    options.ogTitle !== undefined ? `<meta property="og:title" content="${options.ogTitle}">` : "",
+    options.ogImage !== undefined ? `<meta property="og:image" content="${options.ogImage}">` : "",
   ].join("\n");
   const jsonLd =
     options.jsonLdAuthorUrl !== undefined

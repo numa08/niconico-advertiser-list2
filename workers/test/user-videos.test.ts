@@ -3,13 +3,7 @@
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { app } from "../src/app";
-import {
-  NVAPI_ORIGIN,
-  expectJson,
-  mockNicoFetch,
-  nvapiItem,
-  nvapiResponse,
-} from "./helpers";
+import { expectJson, mockNicoFetch, NVAPI_ORIGIN, nvapiItem, nvapiResponse } from "./helpers";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -26,10 +20,7 @@ function nvapiRoute(userId: string, totalCount: number, items: ReturnType<typeof
 describe("GET /api/user/videos", () => {
   it("UV-1: 有効なuserIdで200とユーザー動画スキーマのJSONを返す", async () => {
     mockNicoFetch([
-      nvapiRoute("300001", 2, [
-        nvapiItem("sm18219289", "動画1"),
-        nvapiItem("sm18219290", "動画2"),
-      ]),
+      nvapiRoute("300001", 2, [nvapiItem("sm18219289", "動画1"), nvapiItem("sm18219290", "動画2")]),
     ]);
 
     const res = await app.request("/api/user/videos?userId=300001", {}, env);
@@ -46,9 +37,7 @@ describe("GET /api/user/videos", () => {
     const video = (body.videos as Record<string, unknown>[])[0]!;
     expect(video.videoId).toBe("sm18219289");
     expect(video.title).toBe("動画1");
-    expect(video.thumbnail).toBe(
-      "https://nicovideo.cdn.nimg.jp/thumbnails/sm18219289/default.jpg",
-    );
+    expect(video.thumbnail).toBe("https://nicovideo.cdn.nimg.jp/thumbnails/sm18219289/default.jpg");
     expect(video.published).toBe("2024-01-15T12:34:56+09:00");
     expect(video.link).toBe("https://www.nicovideo.jp/watch/sm18219289");
   });

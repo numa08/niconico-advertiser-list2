@@ -6,14 +6,13 @@ import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { app } from "../src/app";
 import {
-  KOKEN_ORIGIN,
-  NVAPI_ORIGIN,
-  WATCH_ORIGIN,
   expectJson,
   kokenRoute,
   mockNicoFetch,
+  NVAPI_ORIGIN,
   nvapiItem,
   nvapiResponse,
+  WATCH_ORIGIN,
   watchPageHtml,
 } from "./helpers";
 
@@ -80,16 +79,12 @@ describe("キャッシュ", () => {
   it("CA-2/CA-4: 初回はfromCache=false、TTL内の2回目はニコニコへ再アクセスせずfromCache=trueで応答する", async () => {
     const recorded = mockNicoFetch([watchRoute("sm400003")]);
 
-    const first = await expectJson(
-      await app.request("/api/video/info?videoId=sm400003", {}, env),
-    );
+    const first = await expectJson(await app.request("/api/video/info?videoId=sm400003", {}, env));
     expect(first.fromCache).toBe(false);
     const fetchCountAfterFirst = recorded.length;
     expect(fetchCountAfterFirst).toBeGreaterThan(0);
 
-    const second = await expectJson(
-      await app.request("/api/video/info?videoId=sm400003", {}, env),
-    );
+    const second = await expectJson(await app.request("/api/video/info?videoId=sm400003", {}, env));
     expect(second.fromCache).toBe(true);
     // ニコニコへの再アクセスなし
     expect(recorded.length).toBe(fetchCountAfterFirst);
@@ -110,9 +105,7 @@ describe("キャッシュ", () => {
     expect(recorded.length).toBeGreaterThan(fetchCountAfterFirst);
 
     // 再取得後もキャッシュは更新されている（3回目はキャッシュヒット）
-    const third = await expectJson(
-      await app.request("/api/video/info?videoId=sm400004", {}, env),
-    );
+    const third = await expectJson(await app.request("/api/video/info?videoId=sm400004", {}, env));
     expect(third.fromCache).toBe(true);
   });
 

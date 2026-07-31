@@ -47,12 +47,7 @@ describe("parseCharsPerLine", () => {
 
 describe("formatAdvertiserList", () => {
   it("FE-105〜FE-107/D-1: 基本的な折り返し", () => {
-    const result = formatAdvertiserList(
-      ["あ様", "い様", "う様", "え様"],
-      "すべて表示",
-      "",
-      6,
-    );
+    const result = formatAdvertiserList(["あ様", "い様", "う様", "え様"], "すべて表示", "", 6);
     expect(result).toBe("あ様、い様、\nう様、え様");
   });
 

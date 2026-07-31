@@ -30,12 +30,10 @@ describe("extractVideoId", () => {
     expect(extractVideoId("https://www.nicovideo.jp/watch/sm12345678?ref=ranking")).toBe(
       "sm12345678",
     );
-    expect(extractVideoId("https://www.nicovideo.jp/watch/sm12345678#comment")).toBe(
+    expect(extractVideoId("https://www.nicovideo.jp/watch/sm12345678#comment")).toBe("sm12345678");
+    expect(extractVideoId("https://www.nicovideo.jp/watch/sm12345678?ref=ranking#comment")).toBe(
       "sm12345678",
     );
-    expect(
-      extractVideoId("https://www.nicovideo.jp/watch/sm12345678?ref=ranking#comment"),
-    ).toBe("sm12345678");
   });
 
   it("FE-124: 空・空白のみは失敗する", () => {

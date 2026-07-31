@@ -43,10 +43,7 @@ describe("app", () => {
     expect(body.error).toBe("unexpected failure");
 
     expect(consoleSpy).toHaveBeenCalledTimes(1);
-    const logged = JSON.parse(consoleSpy.mock.calls[0]![0] as string) as Record<
-      string,
-      unknown
-    >;
+    const logged = JSON.parse(consoleSpy.mock.calls[0]![0] as string) as Record<string, unknown>;
     expect(logged.level).toBe("error");
     expect(logged.context).toBe("app.onError");
     expect(logged.method).toBe("GET");

@@ -72,7 +72,10 @@ export async function fetchNicoadHistoryChunk(
     const res = await fetch(kokenUrl(videoId, cursor), { headers: KOKEN_HEADERS });
     if (!res.ok) {
       await res.body?.cancel();
-      throw new UpstreamHttpError(res.status, `Failed to fetch nicoad histories: HTTP ${res.status}`);
+      throw new UpstreamHttpError(
+        res.status,
+        `Failed to fetch nicoad histories: HTTP ${res.status}`,
+      );
     }
     const body = (await res.json()) as KokenResponse;
     const items = body.data.histories;
@@ -89,11 +92,12 @@ export async function fetchNicoadHistoryChunk(
       });
     }
     // 存在しない動画もkokenは200 + 空リストを返すため、そのまま空チャンクになる（AH-6）
-    if (body.data.nextCount <= 0 || items.length === 0) {
+    const lastItem = items.at(-1);
+    if (body.data.nextCount <= 0 || lastItem === undefined) {
       nextOffsetId = undefined;
       break;
     }
-    cursor = items[items.length - 1]!.id;
+    cursor = lastItem.id;
     nextOffsetId = cursor;
   }
 

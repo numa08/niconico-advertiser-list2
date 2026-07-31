@@ -4,7 +4,7 @@
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { app } from "../src/app";
-import { WATCH_ORIGIN, expectJson, mockNicoFetch, watchPageHtml } from "./helpers";
+import { expectJson, mockNicoFetch, WATCH_ORIGIN, watchPageHtml } from "./helpers";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -14,8 +14,7 @@ function watchRoute(videoId: string, html: string) {
   return {
     origin: WATCH_ORIGIN,
     path: `/watch/${videoId}`,
-    handler: () =>
-      new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } }),
+    handler: () => new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } }),
   };
 }
 
@@ -64,9 +63,7 @@ describe("GET /api/video/info", () => {
   });
 
   it("COM-1: watchページへのリクエストにChrome相当のUser-Agentを付与する", async () => {
-    const recorded = mockNicoFetch([
-      watchRoute("sm100003", watchPageHtml({ ogTitle: "t" })),
-    ]);
+    const recorded = mockNicoFetch([watchRoute("sm100003", watchPageHtml({ ogTitle: "t" }))]);
 
     await app.request("/api/video/info?videoId=sm100003", {}, env);
     const watchRequests = recorded.filter((r) => r.url.origin === WATCH_ORIGIN);
@@ -77,9 +74,7 @@ describe("GET /api/video/info", () => {
   });
 
   it("VI-2: og:titleが無い場合はtitle要素へフォールバックする", async () => {
-    mockNicoFetch([
-      watchRoute("sm100004", watchPageHtml({ titleTag: "フォールバックタイトル" })),
-    ]);
+    mockNicoFetch([watchRoute("sm100004", watchPageHtml({ titleTag: "フォールバックタイトル" }))]);
 
     const res = await app.request("/api/video/info?videoId=sm100004", {}, env);
     const body = await expectJson(res);

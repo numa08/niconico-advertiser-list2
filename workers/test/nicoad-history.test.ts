@@ -4,13 +4,7 @@
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { app } from "../src/app";
-import {
-  KOKEN_ORIGIN,
-  KOKEN_PAGE_SIZE,
-  expectJson,
-  kokenRoute,
-  mockNicoFetch,
-} from "./helpers";
+import { expectJson, KOKEN_ORIGIN, KOKEN_PAGE_SIZE, kokenRoute, mockNicoFetch } from "./helpers";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -133,9 +127,7 @@ describe("GET /api/video/nicoad-history", () => {
   it("AH-7: videoId未指定・空文字列は400を返す", async () => {
     mockNicoFetch([]);
     expect((await app.request("/api/video/nicoad-history", {}, env)).status).toBe(400);
-    expect(
-      (await app.request("/api/video/nicoad-history?videoId=", {}, env)).status,
-    ).toBe(400);
+    expect((await app.request("/api/video/nicoad-history?videoId=", {}, env)).status).toBe(400);
   });
 
   it("AH-8: videoIdに英数字以外が含まれる場合は400を返し、ニコニコへアクセスしない", async () => {

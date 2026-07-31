@@ -88,10 +88,18 @@ function compareValues(caseName, label, legacyObj, newObj) {
 
 function checkStatus(caseName, legacy, next, expectedStatus) {
   if (legacy.status !== expectedStatus) {
-    report(caseName, "failure", `現行のステータスが想定外: ${legacy.status} (想定${expectedStatus})`);
+    report(
+      caseName,
+      "failure",
+      `現行のステータスが想定外: ${legacy.status} (想定${expectedStatus})`,
+    );
   }
   if (next.status !== expectedStatus) {
-    report(caseName, "failure", `新環境のステータスが想定外: ${next.status} (想定${expectedStatus})`);
+    report(
+      caseName,
+      "failure",
+      `新環境のステータスが想定外: ${next.status} (想定${expectedStatus})`,
+    );
   }
   return legacy.status === expectedStatus && next.status === expectedStatus;
 }
@@ -166,11 +174,7 @@ async function caseUserVideos() {
   // nvapi移行による差分はすべてexpectedとして実態を記録する
   const legacyText = await legacy.text();
   const newBody = await next.json();
-  report(
-    name,
-    "expected",
-    `現行: status=${legacy.status} body先頭=${legacyText.slice(0, 120)}`,
-  );
+  report(name, "expected", `現行: status=${legacy.status} body先頭=${legacyText.slice(0, 120)}`);
   report(
     name,
     "expected",
