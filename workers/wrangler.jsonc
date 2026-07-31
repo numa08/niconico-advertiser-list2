@@ -5,6 +5,14 @@
   "compatibility_date": "2026-07-01",
   "compatibility_flags": ["nodejs_compat"],
 
+  // Cloudflareで設定したカスタムドメイン。デプロイ時に自動でDNS/証明書が紐付く
+  "routes": [
+    {
+      "pattern": "niconico-advertisers.numa08.dev",
+      "custom_domain": true
+    }
+  ],
+
   // Reactフロントエンド（frontend/）のビルド成果物。
   // 動的ルート /advertisers/{videoId} などはSPAフォールバックで index.html を返し
   // クライアント側ルーターに処理させる
