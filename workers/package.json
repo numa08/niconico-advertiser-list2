@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:contract": "node scripts/contract-check.mjs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "pnpm cf-typegen && tsc --noEmit",
     "cf-typegen": "wrangler types"
   },
   "devDependencies": {
