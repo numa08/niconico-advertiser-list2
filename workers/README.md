@@ -45,14 +45,29 @@ pnpm test:contract      # LEGACY_BASE / NEW_BASE 環境変数で対象URLを変�
 
 ## デプロイ
 
-初回のみ KV namespace を作成し、`wrangler.jsonc` の `id` を差し替える:
+本番デプロイは **Cloudflare Workers Builds**（gitリポジトリ連携）で自動化する。
+mainブランチへのpushでビルド・デプロイが実行され、それ以外のブランチは
+`wrangler versions upload` によるプレビューになる。
+
+ダッシュボードでの設定値（Workers & Pages → Create → Import a repository、
+または既存Workerの Settings → Builds → Connect）:
+
+| 項目 | 値 |
+|---|---|
+| リポジトリ / 本番ブランチ | `numa08/niconico-advertiser-list2` / `main` |
+| Root directory | `/`（リポジトリルート。pnpm workspaceのため） |
+| Build command | `pnpm install --frozen-lockfile && pnpm ci:build` |
+| Deploy command | `pnpm -C workers deploy` |
+| 非本番ブランチのDeploy command | `pnpm -C workers exec wrangler versions upload` |
+| ビルド環境変数 | `GA4_MEASUREMENT_ID`（GA4測定ID。フロントエンドビルド時に注入） |
+
+- `pnpm ci:build` はルートpackage.jsonのスクリプトで、typecheck → 全テスト（workers + frontend）→
+  フロントエンドビルドを実行する。**テスト失敗時はデプロイが中断される**
+- Worker名はダッシュボードと `wrangler.jsonc` の `name`（`niconico-advertiser-list2`）が一致している必要がある
+- KVバインディング `NICO_CACHE` の本番namespaceは作成済み（IDは `wrangler.jsonc` に記載）
+
+手元からの手動デプロイも可能:
 
 ```bash
-pnpm wrangler kv namespace create NICO_CACHE
+pnpm -C frontend build && pnpm -C workers deploy
 ```
-
-```bash
-pnpm deploy
-```
-
-本番デプロイは GitHub Actions からの `wrangler deploy` に集約する（フェーズ5で整備）。

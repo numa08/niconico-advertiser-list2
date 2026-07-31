@@ -133,6 +133,11 @@ GitHub Actionsを使わず **Cloudflare Workers Builds（gitリポジトリ連�
       再確認も完了（`/advertisers/{videoId}` 直アクセス・クライアント側404を実機確認）
 - [ ] Cloudflare Workers Builds を設定（ビルドコマンド: フロントエンドビルド + `wrangler deploy`、
       GA4測定IDはビルド環境変数で注入）
+      → 準備完了（2026-07-31）: 本番KV namespace作成・`wrangler.jsonc` へのID反映済み。
+      CIスクリプト `pnpm ci:build`（typecheck+全テスト+ビルド。失敗時デプロイ中断=完了条件20）と
+      ダッシュボード設定値を `workers/README.md` に記載。残りはダッシュボードでの
+      リポジトリ接続操作のみ。**注意: 本番ブランチ(main)へ本ブランチをマージするまで
+      ビルドは失敗する**（mainはまだKobweb構成のため）
 - [ ] Kobweb/Gradle資産（`site/`、`gradle*`、`Dockerfile` 等）の削除
 
 ### フェーズ6: 切り替え・撤収

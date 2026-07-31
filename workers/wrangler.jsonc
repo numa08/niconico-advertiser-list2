@@ -19,8 +19,8 @@
   "kv_namespaces": [
     {
       "binding": "NICO_CACHE",
-      // 本番namespaceは `wrangler kv namespace create NICO_CACHE` で作成後にIDを差し替える
-      "id": "TBD_CREATE_WITH_WRANGLER_KV_NAMESPACE_CREATE"
+      // `wrangler kv namespace create NICO_CACHE` で作成した本番namespace（2026-07-31）
+      "id": "8e8b9810c5224e0e98bce9a843a034fc"
     }
   ],
 
