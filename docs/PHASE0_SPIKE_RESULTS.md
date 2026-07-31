@@ -160,7 +160,8 @@ nvapiのすべてが実エッジ環境で動作する。技術的なブロッカ
 
 - [x] `workers-spike/` をCloudflareアカウントへデプロイし、実エッジIPからの
       疎通を確認する → ✅ 全項目期待値どおり（上記セクション7）
-- [ ] サブリクエスト上限対策（案a: Paid化 / 案b: 継続カーソル方式）の決定
+- [x] サブリクエスト上限対策（案a: Paid化 / 案b: 継続カーソル方式）の決定
+      → **案b（継続カーソル方式）に決定**（2026-07-31、詳細は CLOUDFLARE_MIGRATION.md フェーズ0）
 - [ ] （推奨）Koyeb本番の `/api/user/videos` が現在も動作しているか確認する
       （Atomフィード廃止の影響確認）
 - [ ] 検証完了後、スパイクWorkerを削除する（`cd workers-spike && npx wrangler delete`）

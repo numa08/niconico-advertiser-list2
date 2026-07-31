@@ -63,18 +63,22 @@ Koyeb（Docker + JVM 常駐サーバー）から Cloudflare への移行に向�
 - [x] `kobweb export --layout static` の検証 → 成立。ただし動的ルート `/advertisers/{videoId}` はSPAフォールバック（`not_found_handling: "single-page-application"`）で対応する
 - [x] 広告件数の多い実動画でのページ数実態調査 → sm9で8,000件超を確認。無料プランのサブリクエスト上限50では不足
 - [x] `workers-spike/` をCloudflareアカウントへデプロイし、実エッジIPからの疎通を最終確認する → 全項目期待値どおり（ブロックなし）
-- [ ] サブリクエスト上限の対策（案a: Workers Paid化 / 案b: 継続カーソル方式）を決定する
+- [x] サブリクエスト上限の対策（案a: Workers Paid化 / 案b: 継続カーソル方式）を決定する
+      → **案b（継続カーソル方式）に決定**（2026-07-31）。無料枠を維持する。サーバーは1リクエストあたり最大約40ページを集約し、未完了の場合はレスポンスに継続カーソル（`nextOffsetId`）を追加フィールドで返す。フロントエンドは完了まで繰り返し呼ぶ（Kobweb側の共有モデル更新とフェッチループの改修が必要）
 
 ### フェーズ1: プロジェクト基盤
 
-- [ ] `workers/` ディレクトリに wrangler + TypeScript + Hono + Vitest のプロジェクトを作成する
-- [ ] `wrangler.toml` に KV namespace・Static Assets・環境変数（GA4測定ID）を定義する
-- [ ] ローカル開発フロー（`wrangler dev` + 静的アセット）を整備する
+- [x] `workers/` ディレクトリに wrangler + TypeScript + Hono + Vitest のプロジェクトを作成する
+      → pnpm管理。vitest 4 + `@cloudflare/vitest-pool-workers` 0.19（`cloudflareTest()` プラグイン形式）でworkerd上のテストが動作
+- [x] `wrangler.jsonc` に KV namespace・Static Assets・環境変数を定義する
+      → KVバインディング `NICO_CACHE`（本番namespace IDはデプロイ前に `wrangler kv namespace create` で作成して差し替え）、Static Assets は `../site/.kobweb/site` + SPAフォールバック。GA4測定IDはランタイムではなくKobwebビルド時に注入するためフェーズ3で扱う
+- [x] ローカル開発フロー（`wrangler dev` + 静的アセット）を整備する
+      → `pnpm dev` で起動し `/api/health` の応答を確認済み。手順は `workers/README.md` を参照
 
 ### フェーズ2: バックエンド再実装（TypeScript）
 
 - [ ] `GET /api/video/info`: watchページ取得 + `HTMLRewriter` によるメタ情報抽出（タイトル・サムネイル・userId、JSON-LDフォールバック含む）
-- [ ] `GET /api/video/nicoad-history`: koken API のカーソルページング全件取得、ページ間ランダム遅延（10〜100ms）の維持
+- [ ] `GET /api/video/nicoad-history`: koken API のカーソルページング取得、ページ間ランダム遅延（10〜100ms）の維持。案bにより1リクエスト最大約40ページで打ち切り、未完了時は `nextOffsetId`（継続カーソル）を返す。`offsetId` クエリパラメータで続きから取得できるようにする
 - [ ] `GET /api/user/videos`: **nvapi**（`nvapi.nicovideo.jp/v3/users/{id}/videos`、`X-Frontend-Id: 6` 必須）からの取得に切り替える（Atomフィードは廃止済み）。`totalCount` から `hasNext` を算出、userId/page のバリデーション（数値のみ・page>=1）
 - [ ] KVキャッシュ層: TTL（動画情報・広告履歴1時間、ユーザー動画30分）、`cachedAt`/`fromCache` の付与、`refresh=true` での強制再取得
 - [ ] エラー互換: 400（パラメータ不正）/ 404（動画・ユーザー不存在、`{"error": ...}` ボディ）/ 500 を現行と同じ形式で返す
