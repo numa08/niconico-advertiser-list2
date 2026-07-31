@@ -79,11 +79,13 @@ Koyeb（Docker + JVM 常駐サーバー）から Cloudflare への移行に向�
 
 詳細な要件定義（EARS記法）は [WORKERS_API_SPEC.md](./WORKERS_API_SPEC.md) を参照。
 
-- [ ] `GET /api/video/info`: watchページ取得 + `HTMLRewriter` によるメタ情報抽出（タイトル・サムネイル・userId、JSON-LDフォールバック含む）
-- [ ] `GET /api/video/nicoad-history`: koken API のカーソルページング取得、ページ間ランダム遅延（10〜100ms）の維持。案bにより1リクエスト最大約40ページで打ち切り、未完了時は `nextOffsetId`（継続カーソル）を返す。`offsetId` クエリパラメータで続きから取得できるようにする
-- [ ] `GET /api/user/videos`: **nvapi**（`nvapi.nicovideo.jp/v3/users/{id}/videos`、`X-Frontend-Id: 6` 必須）からの取得に切り替える（Atomフィードは廃止済み）。`totalCount` から `hasNext` を算出、userId/page のバリデーション（数値のみ・page>=1）
-- [ ] KVキャッシュ層: TTL（動画情報・広告履歴1時間、ユーザー動画30分）、`cachedAt`/`fromCache` の付与、`refresh=true` での強制再取得
-- [ ] エラー互換: 400（パラメータ不正）/ 404（動画・ユーザー不存在、`{"error": ...}` ボディ）/ 500 を現行と同じ形式で返す
+- [x] `GET /api/video/info`: watchページ取得 + `HTMLRewriter` によるメタ情報抽出（タイトル・サムネイル・userId、JSON-LDフォールバック含む）→ `workers/src/nico/watchPage.ts`
+- [x] `GET /api/video/nicoad-history`: koken API のカーソルページング取得、ページ間ランダム遅延（10〜100ms）の維持。案bにより1リクエスト最大40ページで打ち切り、未完了時は `nextOffsetId`（継続カーソル）を返す。`offsetId` クエリパラメータで続きから取得できる → `workers/src/nico/nicoad.ts`
+- [x] `GET /api/user/videos`: **nvapi**（`nvapi.nicovideo.jp/v3/users/{id}/videos`、`X-Frontend-Id: 6` 必須）からの取得に切り替える（Atomフィードは廃止済み）。`totalCount` から `hasNext` を算出、userId/page のバリデーション（数値のみ・page>=1）→ `workers/src/nico/nvapi.ts`
+- [x] KVキャッシュ層: TTL（動画情報・広告履歴1時間、ユーザー動画30分）、`cachedAt`/`fromCache` の付与、`refresh=true` での強制再取得 → `workers/src/cache.ts`
+- [x] エラー互換: 400（パラメータ不正）/ 404（動画不存在、`{"error": ...}` ボディ）/ 500 を現行と同じ形式で返す（ユーザー不存在は仕様変更で200+0件。WORKERS_API_SPEC.md セクション7参照）→ `workers/src/app.ts`
+
+フェーズ2はEARS仕様（WORKERS_API_SPEC.md）ベースのTDDで実装。単体テスト44件（`workers/test/`）がすべてグリーン。
 
 ### フェーズ3: フロントエンド静的化
 

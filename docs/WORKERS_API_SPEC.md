@@ -34,6 +34,7 @@ Cloudflare Workers 版バックエンド（`workers/`）が満たすべき要件
 - **COM-3**（ユビキタス）: バックエンドは、成功レスポンスのJSONに各エンドポイントで定義されたスキーマ以外のフィールドを含めてはならない。
   - 根拠: フロントエンドは `ignoreUnknownKeys` なしの kotlinx.serialization でパースしており、未知フィールドはパースエラーになる
 - **COM-4**（望ましくない挙動）: もしニコニコからの取得が失敗した場合（404を除く）、バックエンドは HTTP 500 を返さなければならない。ボディは `/api/video/*` ではJSON `{"error": "..."}`、`/api/user/videos` ではプレーンテキストとする（現行互換）。
+  - 補足: 404の除外が意味を持つのは watchページのみ（VI-8で404応答に変換する）。koken API・nvapi は不存在リソースにも200を返すため404は現実には発生しない想定であり（フェーズ0実測）、万一発生した場合は他の失敗と同様に500として扱う
 - **COM-5**（ユビキタス）: バックエンドは、シークレットや認証情報をソースコード・設定ファイルにハードコードしてはならない（現時点で必要なシークレットは存在しない）。
 
 ## 2. 動画情報 `GET /api/video/info`（VI）
@@ -172,3 +173,27 @@ Cloudflare Workers 版バックエンド（`workers/`）が満たすべき要件
 | 8 | グローバル同時実行制限（RequestSemaphore 相当）は導入しない | — | isolate分散環境では再現不可。KVキャッシュで実アクセスが減るため、ページ間遅延の維持のみで許容（移行計画の方針） |
 
 これらはフロントエンド改修（変更点1のフェッチループ・共有モデル更新）およびAPIコントラクトテスト（フェーズ4）の前提となる。
+
+## 8. 自動テスト対応表
+
+各要件と `workers/test/` 配下のテストの相互参照。テスト名は要件IDをプレフィックスに持つ
+（例: `it("VI-1: ...")`）。自動テスト不可の要件は確認方法を記載する。
+
+| 要件ID | テストファイル / 確認方法 |
+|---|---|
+| COM-1 | `video-info.test.ts`, `nicoad-history.test.ts`, `user-videos.test.ts` |
+| COM-2 | `user-videos.test.ts` |
+| COM-3 | `video-info.test.ts`, `nicoad-history.test.ts`, `user-videos.test.ts`（レスポンスキー集合の厳密一致で検証） |
+| COM-4 | `video-info.test.ts`, `nicoad-history.test.ts`, `user-videos.test.ts` |
+| COM-5 | 自動テスト対象外（コードレビューで確認。現時点でシークレットは存在しない） |
+| VI-1〜VI-4 | `video-info.test.ts` |
+| VI-5 | 自動テスト対象外（ストリーミング処理は内部実装制約のためコードレビューで確認） |
+| VI-6〜VI-8 | `video-info.test.ts` |
+| AH-1〜AH-8 | `nicoad-history.test.ts`（AH-5は経過時間の下限のみ検証） |
+| UV-1〜UV-6 | `user-videos.test.ts` |
+| CA-1〜CA-7 | `cache.test.ts`（CA-1のTTLはKV listの`expiration`で検証。CA-5はキー粒度を振る舞いで検証） |
+| NF-1 | `nicoad-history.test.ts` のAH-2テストで部分検証（最悪ケースのfetch回数=40を確認） |
+| NF-2 | 自動テスト対象外（KV書き込み回数は実装レビュー、ログはデプロイ後の観測で確認） |
+| NF-3 | `app.test.ts`（onError最終防衛線の500応答と構造化ログのスキーマを検証）、`video-info.test.ts`（fetch例外時の500応答） |
+| NF-4 | 自動テスト対象外（wrangler.jsonc の assets 設定。フェーズ3の結合確認で検証） |
+| NF-5 | `app.test.ts` |

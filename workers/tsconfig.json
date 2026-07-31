@@ -4,7 +4,11 @@
     "module": "ES2022",
     "moduleResolution": "bundler",
     "lib": ["ES2022"],
-    "types": ["./worker-configuration.d.ts", "@types/node"],
+    "types": [
+      "./worker-configuration.d.ts",
+      "@types/node",
+      "@cloudflare/vitest-pool-workers/types"
+    ],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noEmit": true,
