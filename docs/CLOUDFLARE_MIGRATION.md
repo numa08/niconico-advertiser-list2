@@ -77,6 +77,8 @@ Koyeb（Docker + JVM 常駐サーバー）から Cloudflare への移行に向�
 
 ### フェーズ2: バックエンド再実装（TypeScript）
 
+詳細な要件定義（EARS記法）は [WORKERS_API_SPEC.md](./WORKERS_API_SPEC.md) を参照。
+
 - [ ] `GET /api/video/info`: watchページ取得 + `HTMLRewriter` によるメタ情報抽出（タイトル・サムネイル・userId、JSON-LDフォールバック含む）
 - [ ] `GET /api/video/nicoad-history`: koken API のカーソルページング取得、ページ間ランダム遅延（10〜100ms）の維持。案bにより1リクエスト最大約40ページで打ち切り、未完了時は `nextOffsetId`（継続カーソル）を返す。`offsetId` クエリパラメータで続きから取得できるようにする
 - [ ] `GET /api/user/videos`: **nvapi**（`nvapi.nicovideo.jp/v3/users/{id}/videos`、`X-Frontend-Id: 6` 必須）からの取得に切り替える（Atomフィードは廃止済み）。`totalCount` から `hasNext` を算出、userId/page のバリデーション（数値のみ・page>=1）
