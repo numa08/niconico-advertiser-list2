@@ -195,5 +195,5 @@ Cloudflare Workers 版バックエンド（`workers/`）が満たすべき要件
 | NF-1 | `nicoad-history.test.ts` のAH-2テストで部分検証（最悪ケースのfetch回数=40を確認） |
 | NF-2 | 自動テスト対象外（KV書き込み回数は実装レビュー、ログはデプロイ後の観測で確認） |
 | NF-3 | `app.test.ts`（onError最終防衛線の500応答と構造化ログのスキーマを検証）、`video-info.test.ts`（fetch例外時の500応答） |
-| NF-4 | 自動テスト対象外（wrangler.jsonc の assets 設定。フェーズ3の結合確認で検証） |
+| NF-4 | 自動テスト対象外。`app.notFound` の `ASSETS` バインディング委譲 + wrangler.jsonc の assets 設定で実装し、フェーズ3の結合確認で検証済み（ナビゲーション/非ナビゲーション直アクセス・未知パス・`/api/*` 404維持） |
 | NF-5 | `app.test.ts` |

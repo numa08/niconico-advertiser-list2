@@ -44,6 +44,16 @@ export const handleUnexpectedError: ErrorHandler<{ Bindings: Env }> = (error, c)
 
 app.onError(handleUnexpectedError);
 
+// /api/* 以外は Static Assets へ委譲する（仕様: NF-4）。
+// ナビゲーションリクエストはプラットフォームがWorker前段でSPAフォールバックを適用するが、
+// Sec-Fetch-Modeを送らないクライアントはWorkerに到達するため、こちらでも委譲する
+app.notFound((c) => {
+  if (c.req.path.startsWith("/api/")) {
+    return c.text("404 Not Found", 404);
+  }
+  return c.env.ASSETS.fetch(c.req.raw);
+});
+
 app.get("/api/health", (c) => c.json({ status: "ok" }));
 
 // 仕様: VI-1〜VI-8

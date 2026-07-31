@@ -89,9 +89,12 @@ Koyeb（Docker + JVM 常駐サーバー）から Cloudflare への移行に向�
 
 ### フェーズ3: フロントエンド静的化
 
-- [ ] `kobweb export --layout static` の成果物を Workers Static Assets として配信する
-- [ ] GA4 測定IDの注入をビルドパイプラインに組み込む
-- [ ] SPAルーティングの動作を確認する（動的ルート `/advertisers/{videoId}` への直アクセスは `not_found_handling: "single-page-application"` で `index.html` を返しクライアント側ルーターに処理させる）
+- [x] `kobweb export --layout static` の成果物を Workers Static Assets として配信する
+      → `wrangler dev` で配信確認済み（index.html / JSバンドル / favicon）
+- [x] フロントエンドの継続カーソル対応（案bの前提）: 共有モデルに `nextOffsetId` を追加し、`fetchNicoadHistory` がカーソルを完了までたどる方式に改修。sm9（広告23,775件=238ページ=6チャンク）の実データで結合表示を確認済み
+- [x] GA4 測定IDの注入 → 既存の `GA4_MEASUREMENT_ID` 環境変数によるビルド時注入（`site/build.gradle.kts`）が静的エクスポートでもそのまま機能する。CIワークフローへの環境変数設定はフェーズ5で行う
+- [x] SPAルーティングの動作を確認する
+      → ナビゲーションリクエストはプラットフォームのSPAフォールバックで `index.html` が返る。`Sec-Fetch-Mode` を送らないクライアントはWorkerに到達するため、`app.notFound` から `ASSETS` バインディングへ委譲するフォールバックを実装（`/api/*` 以外）。`/advertisers/sm9` 直アクセス・未知パス・`/api/unknown`(404) をローカルで確認済み
 
 ### フェーズ4: テスト
 

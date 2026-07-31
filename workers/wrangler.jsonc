@@ -10,7 +10,10 @@
   // SPAフォールバックで index.html を返しクライアント側ルーターに処理させる
   "assets": {
     "directory": "../site/.kobweb/site",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    // 非ナビゲーションリクエスト（Sec-Fetch-Modeなし）がWorkerに到達した場合に
+    // アセット配信へ委譲するためのバインディング（仕様: NF-4）
+    "binding": "ASSETS"
   },
 
   "kv_namespaces": [
