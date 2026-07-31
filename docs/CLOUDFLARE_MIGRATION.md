@@ -122,10 +122,15 @@ GitHub Actionsを使わず **Cloudflare Workers Builds（gitリポジトリ連�
       `frontend/`（Vite + React + TypeScript、空のプレースホルダー）。`pnpm -r` で
       typecheck / test / build を一括実行）
 - [ ] フロントエンド仕様の整理（別セッションで進行中）
-- [ ] 仕様に基づくReactフロントエンドの実装（`/api/*` の呼び出しは現行と同一契約。
+- [x] 仕様に基づくReactフロントエンドの実装（`/api/*` の呼び出しは現行と同一契約。
       広告履歴の継続カーソル `nextOffsetId` への対応を含む）
+      → ロジック層（`frontend/src/lib/`、ユニットテスト59件）とUI層（ルーティング・レイアウト・
+      テーマ・3画面・ダイアログ・GA4・headメタ）を実装。`wrangler dev` + 実APIで
+      検索遷移・sm9の23,775件表示・404遷移・ダークモードを確認済み。
+      FRONTEND_REQUIREMENTS.md 付録FのUI要件コンポーネントテストは未追加（今後の任意課題）
 - [x] `wrangler.jsonc` の `assets.directory` を `../frontend/dist` へ切り替える
-      （未完成状態はデプロイしない方針のため即時切り替え。SPAルーティングの再確認はReact実装後に実施）
+      （未完成状態はデプロイしない方針のため即時切り替え）。React実装後のSPAルーティング
+      再確認も完了（`/advertisers/{videoId}` 直アクセス・クライアント側404を実機確認）
 - [ ] Cloudflare Workers Builds を設定（ビルドコマンド: フロントエンドビルド + `wrangler deploy`、
       GA4測定IDはビルド環境変数で注入）
 - [ ] Kobweb/Gradle資産（`site/`、`gradle*`、`Dockerfile` 等）の削除

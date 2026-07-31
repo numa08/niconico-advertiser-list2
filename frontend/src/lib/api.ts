@@ -109,8 +109,8 @@ interface NicoadHistoryChunkResponse {
   nextOffsetId?: number;
 }
 
-/** ISO8601文字列として古い方を返す。パースできない場合は辞書順で比較する */
-function olderCachedAt(a: string | null, b: string): string {
+/** ISO8601文字列として古い方を返す。パースできない場合は辞書順で比較する（FE-077でも使用） */
+export function olderCachedAt(a: string | null, b: string): string {
   if (a === null) {
     return b;
   }
