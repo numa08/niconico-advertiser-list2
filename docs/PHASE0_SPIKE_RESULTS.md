@@ -163,4 +163,4 @@ nvapiのすべてが実エッジ環境で動作する。技術的なブロッカ
 - [ ] サブリクエスト上限対策（案a: Paid化 / 案b: 継続カーソル方式）の決定
 - [ ] （推奨）Koyeb本番の `/api/user/videos` が現在も動作しているか確認する
       （Atomフィード廃止の影響確認）
-- [ ] 検証完了後、スパイクWorkerを削除する（`cd workers-spike && npx wrangler delete`）
+- [x] 検証完了後、スパイクWorkerを削除する → ✅ 2026-07-31、Cloudflare上のWorker（`niconico-advertiser-list-spike`）と `workers-spike/` ディレクトリを削除済み
