@@ -51,3 +51,6 @@ site/detekt-baseline.xml
 
 # Playwright MCP
 .playwright-mcp/
+
+# pnpm workspace
+node_modules/

@@ -63,38 +63,82 @@ Koyeb（Docker + JVM 常駐サーバー）から Cloudflare への移行に向�
 - [x] `kobweb export --layout static` の検証 → 成立。ただし動的ルート `/advertisers/{videoId}` はSPAフォールバック（`not_found_handling: "single-page-application"`）で対応する
 - [x] 広告件数の多い実動画でのページ数実態調査 → sm9で8,000件超を確認。無料プランのサブリクエスト上限50では不足
 - [x] `workers-spike/` をCloudflareアカウントへデプロイし、実エッジIPからの疎通を最終確認する → 全項目期待値どおり（ブロックなし）
-- [ ] サブリクエスト上限の対策（案a: Workers Paid化 / 案b: 継続カーソル方式）を決定する
+- [x] サブリクエスト上限の対策（案a: Workers Paid化 / 案b: 継続カーソル方式）を決定する
+      → **案b（継続カーソル方式）に決定**（2026-07-31）。無料枠を維持する。サーバーは1リクエストあたり最大約40ページを集約し、未完了の場合はレスポンスに継続カーソル（`nextOffsetId`）を追加フィールドで返す。フロントエンドは完了まで繰り返し呼ぶ（Kobweb側の共有モデル更新とフェッチループの改修が必要）
 
 ### フェーズ1: プロジェクト基盤
 
-- [ ] `workers/` ディレクトリに wrangler + TypeScript + Hono + Vitest のプロジェクトを作成する
-- [ ] `wrangler.toml` に KV namespace・Static Assets・環境変数（GA4測定ID）を定義する
-- [ ] ローカル開発フロー（`wrangler dev` + 静的アセット）を整備する
+- [x] `workers/` ディレクトリに wrangler + TypeScript + Hono + Vitest のプロジェクトを作成する
+      → pnpm管理。vitest 4 + `@cloudflare/vitest-pool-workers` 0.19（`cloudflareTest()` プラグイン形式）でworkerd上のテストが動作
+- [x] `wrangler.jsonc` に KV namespace・Static Assets・環境変数を定義する
+      → KVバインディング `NICO_CACHE`（本番namespace IDはデプロイ前に `wrangler kv namespace create` で作成して差し替え）、Static Assets は `../site/.kobweb/site` + SPAフォールバック。GA4測定IDはランタイムではなくKobwebビルド時に注入するためフェーズ3で扱う
+- [x] ローカル開発フロー（`wrangler dev` + 静的アセット）を整備する
+      → `pnpm dev` で起動し `/api/health` の応答を確認済み。手順は `workers/README.md` を参照
 
 ### フェーズ2: バックエンド再実装（TypeScript）
 
-- [ ] `GET /api/video/info`: watchページ取得 + `HTMLRewriter` によるメタ情報抽出（タイトル・サムネイル・userId、JSON-LDフォールバック含む）
-- [ ] `GET /api/video/nicoad-history`: koken API のカーソルページング全件取得、ページ間ランダム遅延（10〜100ms）の維持
-- [ ] `GET /api/user/videos`: **nvapi**（`nvapi.nicovideo.jp/v3/users/{id}/videos`、`X-Frontend-Id: 6` 必須）からの取得に切り替える（Atomフィードは廃止済み）。`totalCount` から `hasNext` を算出、userId/page のバリデーション（数値のみ・page>=1）
-- [ ] KVキャッシュ層: TTL（動画情報・広告履歴1時間、ユーザー動画30分）、`cachedAt`/`fromCache` の付与、`refresh=true` での強制再取得
-- [ ] エラー互換: 400（パラメータ不正）/ 404（動画・ユーザー不存在、`{"error": ...}` ボディ）/ 500 を現行と同じ形式で返す
+詳細な要件定義（EARS記法）は [WORKERS_API_SPEC.md](./WORKERS_API_SPEC.md) を参照。
+
+- [x] `GET /api/video/info`: watchページ取得 + `HTMLRewriter` によるメタ情報抽出（タイトル・サムネイル・userId、JSON-LDフォールバック含む）→ `workers/src/nico/watchPage.ts`
+- [x] `GET /api/video/nicoad-history`: koken API のカーソルページング取得、ページ間ランダム遅延（10〜100ms）の維持。案bにより1リクエスト最大40ページで打ち切り、未完了時は `nextOffsetId`（継続カーソル）を返す。`offsetId` クエリパラメータで続きから取得できる → `workers/src/nico/nicoad.ts`
+- [x] `GET /api/user/videos`: **nvapi**（`nvapi.nicovideo.jp/v3/users/{id}/videos`、`X-Frontend-Id: 6` 必須）からの取得に切り替える（Atomフィードは廃止済み）。`totalCount` から `hasNext` を算出、userId/page のバリデーション（数値のみ・page>=1）→ `workers/src/nico/nvapi.ts`
+- [x] KVキャッシュ層: TTL（動画情報・広告履歴1時間、ユーザー動画30分）、`cachedAt`/`fromCache` の付与、`refresh=true` での強制再取得 → `workers/src/cache.ts`
+- [x] エラー互換: 400（パラメータ不正）/ 404（動画不存在、`{"error": ...}` ボディ）/ 500 を現行と同じ形式で返す（ユーザー不存在は仕様変更で200+0件。WORKERS_API_SPEC.md セクション7参照）→ `workers/src/app.ts`
+
+フェーズ2はEARS仕様（WORKERS_API_SPEC.md）ベースのTDDで実装。単体テスト44件（`workers/test/`）がすべてグリーン。
 
 ### フェーズ3: フロントエンド静的化
 
-- [ ] `kobweb export --layout static` の成果物を Workers Static Assets として配信する
-- [ ] GA4 測定IDの注入をビルドパイプラインに組み込む
-- [ ] SPAルーティングの動作を確認する（動的ルート `/advertisers/{videoId}` への直アクセスは `not_found_handling: "single-page-application"` で `index.html` を返しクライアント側ルーターに処理させる）
+- [x] `kobweb export --layout static` の成果物を Workers Static Assets として配信する
+      → `wrangler dev` で配信確認済み（index.html / JSバンドル / favicon）
+- [x] フロントエンドの継続カーソル対応（案bの前提）: 共有モデルに `nextOffsetId` を追加し、`fetchNicoadHistory` がカーソルを完了までたどる方式に改修。sm9（広告23,775件=238ページ=6チャンク）の実データで結合表示を確認済み
+- [x] GA4 測定IDの注入 → 既存の `GA4_MEASUREMENT_ID` 環境変数によるビルド時注入（`site/build.gradle.kts`）が静的エクスポートでもそのまま機能する。CIワークフローへの環境変数設定はフェーズ5で行う
+- [x] SPAルーティングの動作を確認する
+      → ナビゲーションリクエストはプラットフォームのSPAフォールバックで `index.html` が返る。`Sec-Fetch-Mode` を送らないクライアントはWorkerに到達するため、`app.notFound` から `ASSETS` バインディングへ委譲するフォールバックを実装（`/api/*` 以外）。`/advertisers/sm9` 直アクセス・未知パス・`/api/unknown`(404) をローカルで確認済み
 
 ### フェーズ4: テスト
 
-- [ ] 既存テスト相当の移植: `VideoIdExtractor` / `UserIdExtractor` / `AtomFeedParser` のテストケースを TypeScript 側パーサに対して移植する
-- [ ] APIコントラクトテスト: 現行 Koyeb 環境と新 Workers 環境に同一リクエストを投げ、レスポンスJSONの互換性を検証する
-- [ ] キャッシュ挙動（TTL内2回目で `fromCache=true`、`refresh=true` で再取得）のテスト
+- [x] 既存テスト相当の移植 → 計画当初から状況が変わったため再解釈のうえ完了:
+      `VideoIdExtractor` / `UserIdExtractor` は案Aによりフロントエンド（Kotlin）に残留し、既存のcommonTestが引き続き有効。
+      `AtomFeedParser` はnvapi移行により廃止対象。TypeScript側で新規に必要なパーサ相当
+      （watchページメタ抽出・koken/nvapiレスポンスマッピング・バリデーション）は `workers/test/` の単体テスト46件でカバー
+- [x] APIコントラクトテスト: 現行 Koyeb 本番と新 Workers（ローカル）に同一リクエストを投げ、互換性を検証する
+      → `workers/scripts/contract-check.mjs`（`pnpm test:contract`）。2026-07-31実施、**想定外の差分なし**。
+      判明事項: (1) kotlinxのデフォルト値省略により現行はnull値キー（`userId`/`message`等）を出力しないが、新環境の明示的null出力とデコード互換
+      (2) **現行本番の `/api/user/videos` は動画19件保有ユーザーに0件を返し、実際に機能していない**（Atomフィード廃止の影響。フェーズ0の推測を実証、nvapi移行で修復）
+      (3) 削除済み動画のwatchページ404挙動も両環境で一致
+- [x] キャッシュ挙動（TTL内2回目で `fromCache=true`、`refresh=true` で再取得）のテスト
+      → `workers/test/cache.test.ts`（CA-1〜CA-7）で検証済み（フェーズ2で実施）
 
-### フェーズ5: CI/CD
+### フェーズ5: 脱Kobweb（Reactフロントエンド再実装）とデプロイ整備
 
-- [ ] GitHub Actions で「Kobweb 静的エクスポート → Workers ビルド → `wrangler deploy`」を行うワークフローを作成する
-- [ ] PR 時のプレビュー環境（`wrangler versions upload` / preview URL）を設定する
+**再計画（2026-07-31）**: 当初のGitHub Actions CI/CD案から方針変更。フロントエンドを
+React（Vite + TypeScript）で再実装して脱Kobwebし、ツールチェーンをNode.jsに一本化する
+（旧・案Bの前倒し実施）。これによりビルドがpnpmだけで完結するため、デプロイは
+GitHub Actionsを使わず **Cloudflare Workers Builds（gitリポジトリ連携）** の設定のみで
+自動化できる。
+
+- [x] pnpm workspaceによるmono-repo構成の整備（ルート直下に `workers/`（バックエンド）と
+      `frontend/`（Vite + React + TypeScript、空のプレースホルダー）。`pnpm -r` で
+      typecheck / test / build を一括実行）
+- [ ] フロントエンド仕様の整理（別セッションで進行中）
+- [x] 仕様に基づくReactフロントエンドの実装（`/api/*` の呼び出しは現行と同一契約。
+      広告履歴の継続カーソル `nextOffsetId` への対応を含む）
+      → ロジック層（`frontend/src/lib/`、ユニットテスト59件）とUI層（ルーティング・レイアウト・
+      テーマ・3画面・ダイアログ・GA4・headメタ）を実装。`wrangler dev` + 実APIで
+      検索遷移・sm9の23,775件表示・404遷移・ダークモードを確認済み。
+      FRONTEND_REQUIREMENTS.md 付録FのUI要件コンポーネントテストは未追加（今後の任意課題）
+- [x] `wrangler.jsonc` の `assets.directory` を `../frontend/dist` へ切り替える
+      （未完成状態はデプロイしない方針のため即時切り替え）。React実装後のSPAルーティング
+      再確認も完了（`/advertisers/{videoId}` 直アクセス・クライアント側404を実機確認）
+- [ ] Cloudflare Workers Builds を設定（ビルドコマンド: フロントエンドビルド + `wrangler deploy`、
+      GA4測定IDはビルド環境変数で注入）
+      → 準備完了（2026-07-31）: 本番KV namespace作成・`wrangler.jsonc` へのID反映済み。
+      CIスクリプト `pnpm ci:build`（typecheck+全テスト+ビルド。失敗時デプロイ中断=完了条件20）と
+      ダッシュボード設定値を `workers/README.md` に記載。残りはダッシュボードでの
+      リポジトリ接続操作のみ。**注意: 本番ブランチ(main)へ本ブランチをマージするまで
+      ビルドは失敗する**（mainはまだKobweb構成のため）
+- [ ] Kobweb/Gradle資産（`site/`、`gradle*`、`Dockerfile` 等）の削除
 
 ### フェーズ6: 切り替え・撤収
 
@@ -107,12 +151,14 @@ Koyeb（Docker + JVM 常駐サーバー）から Cloudflare への移行に向�
 
 記法: 「◯◯は◯◯されたとき、◯◯しなければならない」
 
+API互換性の詳細仕様（EARS記法・全39要件）は [WORKERS_API_SPEC.md](./WORKERS_API_SPEC.md) が正。本節は完了条件レベルの要約である。
+
 ### API互換性
 
 1. `/api/video/info` は、有効な `videoId` が指定されたとき、HTTP 200 と動画情報（videoId・タイトル・サムネイルURL・投稿者ID・cachedAt・fromCache）のJSONを現行と同一のスキーマで返さなければならない。
 2. `/api/video/info` は、`videoId` が未指定または空で呼び出されたとき、HTTP 400 を返さなければならない。
 3. `/api/video/info` は、存在しない動画IDが指定されたとき、HTTP 404 と `{"error": "..."}` 形式のJSONを返さなければならない。
-4. `/api/video/nicoad-history` は、広告履歴が複数ページ（100件超）存在する動画IDが指定されたとき、全ページを取得し1つの履歴リストに結合して返さなければならない。
+4. `/api/video/nicoad-history` は、広告履歴が複数ページ（100件超）存在する動画IDが指定されたとき、カーソル方式で複数ページを取得し1つの履歴リストに結合して返さなければならない。ただし1リクエストで取得するページ数は最大40とし、終端に達していない場合は継続カーソル `nextOffsetId` を返さなければならない。`offsetId` パラメータが指定されたとき、そのカーソル位置から取得を再開しなければならない（案b決定事項・2026-07-31改訂。全件の結合はフロントエンドの責務: FRONTEND_REQUIREMENTS.md FE-070a。詳細は WORKERS_API_SPEC.md AH-1〜AH-4）。
 5. `/api/video/nicoad-history` は、広告履歴のページを連続取得するとき、ページ間に10〜100msの遅延を挿入しなければならない。
 6. `/api/user/videos` は、`userId` に数字以外が含まれるとき、または `page` が1未満のとき、HTTP 400 を返さなければならない。
 7. `/api/user/videos` は、有効な `userId` が指定されたとき、動画リスト・件数・`hasNext`・`feedUpdated`・`cachedAt`・`fromCache` を含むJSONを現行と同一のスキーマで返さなければならない。

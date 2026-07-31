@@ -1,0 +1,5 @@
+node_modules/
+.wrangler/
+dist/
+# `pnpm cf-typegen` で再生成する
+worker-configuration.d.ts

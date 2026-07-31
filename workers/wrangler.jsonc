@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "niconico-advertiser-list2",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Reactフロントエンド（frontend/）のビルド成果物。
+  // 動的ルート /advertisers/{videoId} などはSPAフォールバックで index.html を返し
+  // クライアント側ルーターに処理させる
+  "assets": {
+    "directory": "../frontend/dist",
+    "not_found_handling": "single-page-application",
+    // 非ナビゲーションリクエスト（Sec-Fetch-Modeなし）がWorkerに到達した場合に
+    // アセット配信へ委譲するためのバインディング（仕様: NF-4）
+    "binding": "ASSETS"
+  },
+
+  "kv_namespaces": [
+    {
+      "binding": "NICO_CACHE",
+      // `wrangler kv namespace create NICO_CACHE` で作成した本番namespace（2026-07-31）
+      "id": "8e8b9810c5224e0e98bce9a843a034fc"
+    }
+  ],
+
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
