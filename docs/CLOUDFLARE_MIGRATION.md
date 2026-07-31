@@ -110,10 +110,25 @@ Koyeb（Docker + JVM 常駐サーバー）から Cloudflare への移行に向�
 - [x] キャッシュ挙動（TTL内2回目で `fromCache=true`、`refresh=true` で再取得）のテスト
       → `workers/test/cache.test.ts`（CA-1〜CA-7）で検証済み（フェーズ2で実施）
 
-### フェーズ5: CI/CD
+### フェーズ5: 脱Kobweb（Reactフロントエンド再実装）とデプロイ整備
 
-- [ ] GitHub Actions で「Kobweb 静的エクスポート → Workers ビルド → `wrangler deploy`」を行うワークフローを作成する
-- [ ] PR 時のプレビュー環境（`wrangler versions upload` / preview URL）を設定する
+**再計画（2026-07-31）**: 当初のGitHub Actions CI/CD案から方針変更。フロントエンドを
+React（Vite + TypeScript）で再実装して脱Kobwebし、ツールチェーンをNode.jsに一本化する
+（旧・案Bの前倒し実施）。これによりビルドがpnpmだけで完結するため、デプロイは
+GitHub Actionsを使わず **Cloudflare Workers Builds（gitリポジトリ連携）** の設定のみで
+自動化できる。
+
+- [x] pnpm workspaceによるmono-repo構成の整備（ルート直下に `workers/`（バックエンド）と
+      `frontend/`（Vite + React + TypeScript、空のプレースホルダー）。`pnpm -r` で
+      typecheck / test / build を一括実行）
+- [ ] フロントエンド仕様の整理（別セッションで進行中）
+- [ ] 仕様に基づくReactフロントエンドの実装（`/api/*` の呼び出しは現行と同一契約。
+      広告履歴の継続カーソル `nextOffsetId` への対応を含む）
+- [x] `wrangler.jsonc` の `assets.directory` を `../frontend/dist` へ切り替える
+      （未完成状態はデプロイしない方針のため即時切り替え。SPAルーティングの再確認はReact実装後に実施）
+- [ ] Cloudflare Workers Builds を設定（ビルドコマンド: フロントエンドビルド + `wrangler deploy`、
+      GA4測定IDはビルド環境変数で注入）
+- [ ] Kobweb/Gradle資産（`site/`、`gradle*`、`Dockerfile` 等）の削除
 
 ### フェーズ6: 切り替え・撤収
 

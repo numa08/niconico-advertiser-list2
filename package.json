@@ -1,0 +1,11 @@
+{
+  "name": "niconico-advertiser-list2",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "dev": "pnpm --filter niconico-advertiser-list2-workers dev",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "build": "pnpm -r build"
+  }
+}

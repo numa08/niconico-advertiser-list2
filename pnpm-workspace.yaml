@@ -1,7 +1,12 @@
+packages:
+  - workers
+  - frontend
+
 # esbuild/workerd はバイナリ取得のためインストール時スクリプトの実行を許可する
 allowBuilds:
   esbuild: true
   workerd: true
+
 minimumReleaseAgeExclude:
   - '@cloudflare/vitest-pool-workers@0.19.1'
   - '@cloudflare/workerd-darwin-64@1.20260730.1'
@@ -12,3 +17,5 @@ minimumReleaseAgeExclude:
   - miniflare@4.20260730.0
   - workerd@1.20260730.1
   - wrangler@4.116.0
+  - '@vitejs/plugin-react@6.0.5'
+  - vite@8.2.0

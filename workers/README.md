@@ -10,14 +10,17 @@ Kobwebフロントエンドの静的エクスポート成果物を Workers Stati
 - **ルーター**: [Hono](https://hono.dev/)
 - **キャッシュ**: Workers KV（バインディング名 `NICO_CACHE`）
 - **テスト**: Vitest + `@cloudflare/vitest-pool-workers`（workerd上でテスト実行）
-- **静的配信**: Workers Static Assets（`../site/.kobweb/site`、SPAフォールバック有効）
+- **静的配信**: Workers Static Assets（`../frontend/dist`、SPAフォールバック有効）
 
 ## セットアップ
 
+リポジトリはpnpm workspaceのmono-repo構成（`workers/` + `frontend/`）。
+依存のインストールはリポジトリルートで行う。
+
 ```bash
+pnpm install          # リポジトリルートで実行
 cd workers
-pnpm install
-pnpm cf-typegen   # worker-configuration.d.ts（Env型）を生成
+pnpm cf-typegen       # worker-configuration.d.ts（Env型）を生成
 ```
 
 ## 開発
@@ -35,9 +38,10 @@ pnpm dev                # 別ターミナルでWorkersを起動しておく
 pnpm test:contract      # LEGACY_BASE / NEW_BASE 環境変数で対象URLを変更可能
 ```
 
-フロントエンドも含めて動作確認する場合は、先にリポジトリルートで
-`kobweb export --layout static`（`site/.kobweb/site/` に成果物が生成される）を実行してから
-`pnpm dev` を起動する。
+フロントエンドも含めて動作確認する場合は、先に `pnpm -C ../frontend build`
+（`frontend/dist/` に成果物が生成される）を実行してから `pnpm dev` を起動する。
+フロントエンド開発時は `pnpm -C ../frontend dev`（Vite devサーバー）が
+`/api` を `localhost:8787` へプロキシするため、両方を起動して開発できる。
 
 ## デプロイ
 
