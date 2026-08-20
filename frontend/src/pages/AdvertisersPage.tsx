@@ -1,4 +1,4 @@
-// 広告主リストページ（仕様: FRONTEND_REQUIREMENTS.md FE-070〜FE-095, FE-005）
+// 広告主リストページ（仕様: FRONTEND_REQUIREMENTS.md FE-070〜FE-097, FE-005）
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ErrorBox } from "../components/ErrorBox";
@@ -12,13 +12,17 @@ import {
 } from "../lib/api";
 import { formatDateTimeYmdHms } from "../lib/dateFormat";
 import {
+  DEFAULT_NAME_SEPARATOR_OPTION,
   DISPLAY_FORMATS,
   type DisplayFormat,
   formatAdvertiserList,
   HONORIFIC_OPTIONS,
   type HonorificOption,
+  NAME_SEPARATOR_OPTIONS,
+  type NameSeparatorOption,
   parseCharsPerLine,
   resolveHonorific,
+  resolveNameSeparator,
 } from "../lib/formatAdvertiserList";
 
 /** キャッシュ表示（FE-077〜FE-077c）の算出 */
@@ -57,9 +61,13 @@ export function AdvertisersPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 表示設定（FE-090〜FE-094）
+  // 表示設定（FE-090〜FE-097）
   const [honorific, setHonorific] = useState<HonorificOption>("様");
   const [customHonorific, setCustomHonorific] = useState("");
+  const [nameSeparator, setNameSeparator] = useState<NameSeparatorOption>(
+    DEFAULT_NAME_SEPARATOR_OPTION,
+  );
+  const [customNameSeparator, setCustomNameSeparator] = useState("");
   const [displayFormat, setDisplayFormat] = useState<DisplayFormat>("すべて表示");
   const [charsPerLineInput, setCharsPerLineInput] = useState("50");
 
@@ -132,9 +140,18 @@ export function AdvertisersPage() {
         advertiserNames,
         displayFormat,
         resolveHonorific(honorific, customHonorific),
+        resolveNameSeparator(nameSeparator, customNameSeparator),
         parseCharsPerLine(charsPerLineInput),
       ),
-    [advertiserNames, displayFormat, honorific, customHonorific, charsPerLineInput],
+    [
+      advertiserNames,
+      displayFormat,
+      honorific,
+      customHonorific,
+      nameSeparator,
+      customNameSeparator,
+      charsPerLineInput,
+    ],
   );
 
   const totalContribution = useMemo(
@@ -229,6 +246,32 @@ export function AdvertisersPage() {
                   placeholder="例: 殿"
                   value={customHonorific}
                   onChange={(event) => setCustomHonorific(event.target.value)}
+                />
+              </label>
+            )}
+            <label>
+              区切り文字:
+              <select
+                className="select-input"
+                value={nameSeparator}
+                onChange={(event) => setNameSeparator(event.target.value as NameSeparatorOption)}
+              >
+                {NAME_SEPARATOR_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {nameSeparator === "カスタム" && (
+              <label>
+                カスタム区切り文字:
+                <input
+                  type="text"
+                  className="text-input"
+                  placeholder="例: /"
+                  value={customNameSeparator}
+                  onChange={(event) => setCustomNameSeparator(event.target.value)}
                 />
               </label>
             )}
