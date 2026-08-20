@@ -15,9 +15,21 @@ export const HONORIFIC_OPTIONS = ["様", "さん", "氏", "ちゃん", "くん",
 
 export type HonorificOption = (typeof HONORIFIC_OPTIONS)[number];
 
+/** 広告主名の区切り文字の選択肢（FE-096） */
+export const NAME_SEPARATOR_OPTIONS = ["読点（、）", "句点（。）", "カスタム"] as const;
+
+export type NameSeparatorOption = (typeof NAME_SEPARATOR_OPTIONS)[number];
+
+/** 選択肢に対応する実際の区切り文字（FE-100a）。「カスタム」はカスタム入力値を使う */
+const NAME_SEPARATOR_CHARS: Record<Exclude<NameSeparatorOption, "カスタム">, string> = {
+  "読点（、）": "、",
+  "句点（。）": "。",
+};
+
 export const DEFAULT_CHARS_PER_LINE = 50;
 
-const NAME_SEPARATOR = "、";
+/** 区切り文字の既定値（FE-096） */
+export const DEFAULT_NAME_SEPARATOR_OPTION: NameSeparatorOption = "読点（、）";
 
 /**
  * 「1行の文字数」入力の解釈（FE-109）。
@@ -35,6 +47,11 @@ export function parseCharsPerLine(input: string): number {
 /** 敬称サフィックスの解決（FE-100）。カスタム選択時のみカスタム入力値を使う */
 export function resolveHonorific(selection: HonorificOption, customValue: string): string {
   return selection === "カスタム" ? customValue : selection;
+}
+
+/** 区切り文字の解決（FE-100a）。カスタム選択時のみカスタム入力値を使う */
+export function resolveNameSeparator(selection: NameSeparatorOption, customValue: string): string {
+  return selection === "カスタム" ? customValue : NAME_SEPARATOR_CHARS[selection];
 }
 
 /** 重複除去。最初の出現を残す（FE-103） */
@@ -61,20 +78,21 @@ function applyDisplayFormat(
 }
 
 /**
- * 広告主名リストを表示形式・敬称・1行文字数で整形する（FE-101〜FE-108, FE-110）。
+ * 広告主名リストを表示形式・敬称・区切り文字・1行文字数で整形する（FE-101〜FE-108, FE-110）。
  * 文字数はUTF-16コード単位（String.length）で数える（FE-105、付録D-7）
  */
 export function formatAdvertiserList(
   advertiserNames: readonly string[],
   displayFormat: DisplayFormat,
   honorificSuffix: string,
+  nameSeparator: string,
   charsPerLine: number,
 ): string {
   const orderedNames = applyDisplayFormat(advertiserNames, displayFormat);
   // 最終要素を除く各要素の末尾に区切り文字を付与し、区切りも文字数計算に含める（FE-105）
   const elements = orderedNames.map((name, index) => {
     const withHonorific = `${name}${honorificSuffix}`;
-    return index === orderedNames.length - 1 ? withHonorific : `${withHonorific}${NAME_SEPARATOR}`;
+    return index === orderedNames.length - 1 ? withHonorific : `${withHonorific}${nameSeparator}`;
   });
 
   const lines: string[] = [];
